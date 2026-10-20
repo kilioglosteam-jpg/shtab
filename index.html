@@ -187,6 +187,18 @@ main{max-width:1180px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-le
 .br-card-n{font-family:var(--f-mono);font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.1em}
 .br-card-go{font-weight:700;color:var(--good)}
 .br-switch{flex-wrap:wrap;align-self:flex-start}
+.overlay.layer{z-index:25}
+.recbar{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(16px + env(safe-area-inset-bottom,0px));z-index:30;display:flex;gap:10px;align-items:center;flex-wrap:wrap;background:var(--ink);color:var(--bg);padding:8px 10px 8px 14px;border-radius:10px;box-shadow:var(--shadow);font-weight:600;max-width:calc(100vw - 32px)}
+.recbar .btn{color:var(--ink)}
+.recbar .btn.ghost{color:var(--bg);border-color:transparent}
+.rec-dot{width:10px;height:10px;border-radius:50%;background:#e5484d;display:inline-block;animation:recp 1.2s ease-in-out infinite}
+@keyframes recp{50%{opacity:.35}}
+.rec-now{display:inline-flex;gap:6px;align-items:center;color:var(--bad);font-weight:600;font-size:13px}
+.rc-acts{display:flex;gap:6px;flex-wrap:wrap;margin-top:auto;padding-top:4px}
+.role-card.rc-empty{border-style:dashed}
+.rec-btn{color:var(--bad)}
+.player{width:100%;max-height:70vh;background:#000;border-radius:6px}
+.steps{margin:0;padding-left:20px;display:flex;flex-direction:column;gap:6px;font-size:14px}
 details.past>summary{cursor:pointer;color:var(--muted);font-weight:600;margin-bottom:10px}
 
 .filters{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
@@ -417,7 +429,7 @@ function confirmBtn(label, onConfirm){
 }
 
 /* ---------- modal ---------- */
-function closeModal(){ document.querySelectorAll(".overlay,.rv").forEach(x=>x.remove()); document.body.classList.remove("locked"); state.modal=null; }
+function closeModal(){ document.querySelectorAll(".overlay,.rv").forEach(x=>x.remove());  document.body.classList.remove("locked"); state.modal=null; }
 function openModal(title, body, actions, kind="form", rerender){
   closeModal();
   const ov = h("div",{class:"overlay",onclick:e=>{ if(e.target===ov) closeModal(); }},
@@ -979,7 +991,8 @@ function openRound(id, fromEl, startStage){
   const title = h("h2",{class:"rv-name"});
   const meta = h("div",{class:"chips",style:"margin:0"});
   const editBtn = state.canWrite&&!state.offline ? h("button",{class:"btn sm",onclick:()=>{ const s=state.strats.find(x=>x.id===id); if(s) stratForm(s); }},"Редактировать") : null;
-  const head = h("header",{class:"rv-head"}, h("button",{class:"btn ghost sm",onclick:closeModal,"aria-label":"Назад к стратбуку"},"← Стратбук"), h("div",{class:"rv-titles"},title,meta), editBtn);
+  const obsBtn = state.canWrite&&!state.offline ? h("button",{class:"btn ghost sm",onclick:()=>obsSettings()},"OBS") : null;
+  const head = h("header",{class:"rv-head"}, h("button",{class:"btn ghost sm",onclick:closeModal,"aria-label":"Назад к стратбуку"},"← Стратбук"), h("div",{class:"rv-titles"},title,meta), obsBtn, editBtn);
 
   const labels = h("div",{class:"tl-labels"});
   const fills = STAGES.map(([c])=>h("div",{class:"tl-fill"}));
@@ -1016,7 +1029,7 @@ function openRound(id, fromEl, startStage){
 
     // 1 · default
     k=0;
-    const roleCards = ROLES.map(([r,l])=>d.roles&&d.roles[r] ? it(h("div",{class:"role-card"},h("b",{},l),prose(d.roles[r]))) : null).filter(Boolean);
+    const roleCards = ROLES.map(([r,l])=>roleCard(s,"default",r,l,d.roles&&d.roles[r],it)).filter(Boolean);
     pages[0].replaceChildren(h("div",{class:"rv-in"},
       it(h("div",{class:"rv-kick s1"},"Часть 1 из 3 · Дефолт"+(d.until?" · держим до "+d.until:""))),
       s.call ? it(h("p",{class:"rv-lead"},s.call)) : null,
@@ -1041,7 +1054,7 @@ function openRound(id, fromEl, startStage){
     // 3 · finish
     k=0;
     const b = brs[branch], f = (b&&b.finish)||{};
-    const froles = ROLES.map(([r,l])=>f.roles&&f.roles[r] ? it(h("div",{class:"role-card"},h("b",{},l),prose(f.roles[r]))) : null).filter(Boolean);
+    const froles = b ? ROLES.map(([r,l])=>roleCard(s,"b:"+b.id,r,l,f.roles&&f.roles[r],it)).filter(Boolean) : [];
     pages[2].replaceChildren(h("div",{class:"rv-in"},
       it(h("div",{class:"rv-kick s3"},"Часть 3 из 3 · Доигровка")),
       brs.length>1 ? it(h("div",{class:"seg br-switch",role:"group","aria-label":"Вариант"}, brs.map((x,i)=>h("button",{"aria-pressed":String(i===branch),onclick:()=>{branch=i; build();}},(x.finish&&x.finish.name)||("Вариант "+(i+1)))))) : null,
@@ -1171,6 +1184,184 @@ function openOpponent(id){
   };
   const r=build(); if(!r) return;
   openModal(r[0], r[1].filter(Boolean), r[2], "detail", ()=>{ const n=build(); if(!n) return; const mod=document.querySelector(".modal"); if(!mod) return; mod.querySelector(".m-head h2").textContent=n[0]; mod.querySelector(".m-body").replaceChildren(...n[1].filter(Boolean)); const f=mod.querySelector(".m-foot"); if(f) f.replaceChildren(...n[2]); });
+}
+
+/* ---------- OBS recording ---------- */
+const MAX_VIDEO = 50*1024*1024;
+const obsState = {ws:null, ready:false, rec:null, pending:null, needPick:false, uploading:false, reqs:{}, dir:null};
+const obsCfg = () => { try{ return JSON.parse(localStorage.getItem("shtab.obs")||"{}"); }catch(e){ return {}; } };
+const obsSave = c => { try{ localStorage.setItem("shtab.obs", JSON.stringify(c)); }catch(e){} };
+async function sha256b64(str){ const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(str)); return btoa(String.fromCharCode(...new Uint8Array(buf))); }
+function obsConnect(){
+  return new Promise((resolve, reject)=>{
+    if(obsState.ready) return resolve();
+    const c = obsCfg(); let ws;
+    try{ ws = new WebSocket(c.url || "ws://127.0.0.1:4455"); }catch(e){ return reject(new Error("address")); }
+    const t = setTimeout(()=>{ try{ ws.close(); }catch(e){} reject(new Error("timeout")); }, 5000);
+    ws.onmessage = async ev => {
+      const m = JSON.parse(ev.data);
+      if(m.op===0){
+        const d = {rpcVersion:1, eventSubscriptions:64};
+        if(m.d.authentication){
+          if(!c.password){ clearTimeout(t); ws.close(); return reject(new Error("password")); }
+          const secret = await sha256b64(c.password + m.d.authentication.salt);
+          d.authentication = await sha256b64(secret + m.d.authentication.challenge);
+        }
+        ws.send(JSON.stringify({op:1, d}));
+      } else if(m.op===2){ clearTimeout(t); obsState.ws = ws; obsState.ready = true; resolve(); }
+      else if(m.op===7){
+        const r = obsState.reqs[m.d.requestId]; if(!r) return; delete obsState.reqs[m.d.requestId];
+        m.d.requestStatus.result ? r.res(m.d.responseData||{}) : r.rej(new Error(m.d.requestStatus.comment || "ошибка OBS"));
+      } else if(m.op===5 && m.d.eventType==="RecordStateChanged") onRecState(m.d.eventData||{});
+    };
+    ws.onclose = e => { clearTimeout(t); const was = obsState.ready; obsState.ready = false; obsState.ws = null; if(!was) reject(new Error(e.code===4009 ? "password" : "closed")); if(obsState.rec){ toast("Связь с OBS пропала. Остановите запись в OBS и загрузите файл вручную."); obsState.pending = obsState.rec; obsState.rec = null; obsState.needPick = true; } renderRecBar(); };
+  });
+}
+function obsReq(type, data){
+  return new Promise((res, rej)=>{
+    if(!obsState.ws) return rej(new Error("нет связи с OBS"));
+    const id = rid32(); obsState.reqs[id] = {res, rej};
+    obsState.ws.send(JSON.stringify({op:6, d:{requestType:type, requestId:id, requestData:data||{}}}));
+    setTimeout(()=>{ if(obsState.reqs[id]){ delete obsState.reqs[id]; rej(new Error("OBS не ответил")); } }, 8000);
+  });
+}
+const obsErrText = m => m==="password" ? "OBS просит пароль, а он не указан или неверный." : m==="timeout"||m==="closed" ? "Не получилось связаться с OBS. Проверьте, что OBS открыт и сервер WebSocket включён." : m==="address" ? "Неверный адрес OBS." : m;
+
+function idb(){ return new Promise((res, rej)=>{ const r = indexedDB.open("shtab",1); r.onupgradeneeded = ()=>r.result.createObjectStore("kv"); r.onsuccess = ()=>res(r.result); r.onerror = ()=>rej(r.error); }); }
+async function kvGet(k){ try{ const db = await idb(); return await new Promise(res=>{ const q = db.transaction("kv").objectStore("kv").get(k); q.onsuccess = ()=>res(q.result); q.onerror = ()=>res(null); }); }catch(e){ return null; } }
+async function kvSet(k,v){ try{ const db = await idb(); await new Promise(res=>{ const t = db.transaction("kv","readwrite"); t.objectStore("kv").put(v,k); t.oncomplete = res; t.onerror = res; }); }catch(e){} }
+async function getDir(){ if(!obsState.dir) obsState.dir = await kvGet("recDir"); return obsState.dir; }
+async function pickDir(){
+  if(!window.showDirectoryPicker){ toast("Этот браузер не умеет выбирать папку. Откройте сайт в Chrome или Edge на компьютере."); return false; }
+  try{ const d = await showDirectoryPicker({id:"obs-rec", mode:"read"}); obsState.dir = d; await kvSet("recDir", d); return true; }catch(e){ return false; }
+}
+
+async function obsRecord(stratId, key, label){
+  if(obsState.rec || obsState.pending || obsState.uploading){ toast("Сначала закончите текущую запись."); return; }
+  try{ await obsConnect(); }catch(e){ obsSettings(obsErrText(e.message)); return; }
+  try{ await obsReq("StartRecord"); }catch(e){ toast("OBS не начал запись: "+e.message); return; }
+  obsState.rec = {stratId, key, label};
+  renderRecBar(); refreshDetail();
+}
+async function obsStop(){ try{ await obsReq("StopRecord"); }catch(e){ toast("Не удалось остановить запись: "+e.message); } }
+async function onRecState(d){
+  if(d.outputState!=="OBS_WEBSOCKET_OUTPUT_STOPPED" || !obsState.rec) return;
+  obsState.pending = {...obsState.rec, path:d.outputPath||""}; obsState.rec = null;
+  renderRecBar(); refreshDetail();
+  await uploadRecording(false);
+}
+async function uploadRecording(gesture){
+  const rec = obsState.pending; if(!rec) return;
+  const name = String(rec.path).split(/[\\/]/).pop();
+  let file = null;
+  const dir = await getDir();
+  if(dir && name){
+    let perm = await dir.queryPermission({mode:"read"});
+    if(perm!=="granted" && gesture) perm = await dir.requestPermission({mode:"read"});
+    if(perm==="granted"){ for(let i=0;i<5 && !file;i++){ try{ file = await (await dir.getFileHandle(name)).getFile(); }catch(e){ await new Promise(r=>setTimeout(r,600)); } } }
+  }
+  if(!file){ obsState.needPick = true; renderRecBar(); return; }
+  await sendRecording(file);
+}
+const videoType = f => f.type && f.type.startsWith("video/") ? f.type : /\.webm$/i.test(f.name) ? "video/webm" : /\.mov$/i.test(f.name) ? "video/quicktime" : "video/mp4";
+async function sendRecording(file){
+  const rec = obsState.pending; if(!rec) return;
+  obsState.needPick = false;
+  if(file.size > MAX_VIDEO){ toast(`Запись весит ${Math.round(file.size/1048576)} МБ, а бесплатный лимит 50 МБ на файл. Запишите покороче или снизьте битрейт в OBS.`); obsState.pending = null; renderRecBar(); return; }
+  obsState.uploading = true; renderRecBar();
+  try{
+    const r = await assetsApi.upload(file, {type:videoType(file)});
+    const s = state.strats.find(x=>x.id===rec.stratId); if(!s) throw new Error("страта удалена");
+    const old = (s.videos||{})[rec.key];
+    const {id, ...rest} = s;
+    const videos = {...(s.videos||{}), [rec.key]:{id:r.id, size:file.size, at:new Date().toISOString()}};
+    if(await put("strats", s.id, {...rest, videos})){
+      state.strats = upsert(state.strats, {id:s.id, videos});
+      if(old && old.id) sb.storage.from("shots").remove([old.id]).catch(()=>{});
+      toast("Видео прикреплено: "+rec.label); refreshDetail();
+    }
+  }catch(e){ toast("Не удалось загрузить видео: "+((e&&e.message)||"ошибка")); }
+  obsState.uploading = false; obsState.pending = null; renderRecBar();
+}
+async function removeVideo(stratId, key){
+  const s = state.strats.find(x=>x.id===stratId); if(!s || !(s.videos||{})[key]) return;
+  const old = s.videos[key]; const videos = {...s.videos}; delete videos[key];
+  const {id, ...rest} = s;
+  if(await put("strats", s.id, {...rest, videos})){ state.strats = upsert(state.strats, {id:s.id, videos}); sb.storage.from("shots").remove([old.id]).catch(()=>{}); closeLayer(); refreshDetail(); toast("Видео удалено"); }
+}
+
+function renderRecBar(){
+  let bar = document.getElementById("recbar");
+  if(!bar){ bar = h("div",{id:"recbar",class:"recbar",role:"status"}); document.body.append(bar); }
+  const p = obsState.pending;
+  if(obsState.rec){
+    bar.replaceChildren(h("span",{class:"rec-dot"}), h("span",{},"Запись: "+obsState.rec.label), h("button",{class:"btn sm",onclick:obsStop},"Стоп"));
+  } else if(obsState.uploading){
+    bar.replaceChildren(h("span",{},"Загружаю видео: "+(p?p.label:"")+"…"));
+  } else if(p && obsState.needPick){
+    const file = h("input",{type:"file",accept:"video/*",hidden:true,"aria-label":"Файл записи"});
+    file.addEventListener("change",()=>{ if(file.files[0]) sendRecording(file.files[0]); });
+    const name = String(p.path).split(/[\\/]/).pop();
+    bar.replaceChildren(h("span",{},"Запись готова"+(name?": "+name:"")),
+      h("button",{class:"btn primary sm",onclick:async()=>{ if(!(await getDir())){ if(!(await pickDir())) return; } uploadRecording(true); }},"Загрузить"),
+      file, h("button",{class:"btn sm",onclick:()=>file.click()},"Выбрать файл"),
+      h("button",{class:"btn ghost sm",onclick:()=>{ obsState.pending=null; obsState.needPick=false; renderRecBar(); }},"Отмена"));
+  } else { bar.replaceChildren(); }
+  bar.hidden = !bar.childNodes.length;
+}
+
+function layer(title, body, actions){
+  closeLayer();
+  const ov = h("div",{class:"overlay layer",onclick:e=>{ if(e.target===ov) closeLayer(); }},
+    h("div",{class:"modal",role:"dialog","aria-modal":"true","aria-label":title},
+      h("header",{class:"m-head"}, h("h2",{},title), h("button",{type:"button",class:"icon-btn",onclick:closeLayer,"aria-label":"Закрыть"},"×")),
+      h("div",{class:"m-body"}, body),
+      actions && actions.length ? h("footer",{class:"m-foot"}, actions) : null));
+  document.body.append(ov);
+}
+function closeLayer(){ document.querySelectorAll(".overlay.layer").forEach(x=>x.remove()); }
+function playVideo(stratId, key, label){
+  const s = state.strats.find(x=>x.id===stratId); const v = s && (s.videos||{})[key]; if(!v) return;
+  const vid = h("video",{controls:true,autoplay:true,playsinline:true,src:blobUrl(v.id),class:"player"});
+  vid.addEventListener("error",()=>toast("Браузер не может проиграть это видео. Записывайте в OBS в формате MP4."));
+  layer(label, [vid], state.canWrite ? [confirmBtn("Удалить видео",()=>removeVideo(stratId,key))] : []);
+}
+async function obsSettings(err){
+  const c = obsCfg();
+  const url = inp("obs-url", c.url||"ws://127.0.0.1:4455", "text");
+  const pw = inp("obs-pw", c.password||"", "password", "Пароль из настроек OBS");
+  const status = h("p",{class:"small",style:err?"color:var(--bad);font-weight:600":""}, err||"");
+  const dirLine = h("p",{class:"small muted"});
+  const paintDir = async()=>{ const d = await getDir(); dirLine.textContent = d ? "Папка записей: "+d.name : "Папка записей не выбрана. Без неё после записи нужно будет выбрать файл вручную."; };
+  paintDir();
+  const test = h("button",{class:"btn",onclick:async()=>{
+    obsSave({url:url.value.trim(), password:pw.value});
+    if(obsState.ws) try{ obsState.ws.close(); }catch(e){}
+    status.style.cssText = ""; status.textContent = "Подключаюсь…";
+    try{ await obsConnect(); const st = await obsReq("GetRecordDirectory").catch(()=>({})); status.style.cssText="color:var(--good);font-weight:600"; status.textContent = "OBS подключён"+(st.recordDirectory ? ". Записи сохраняются в "+st.recordDirectory : "")+"."; }
+    catch(e){ status.style.cssText="color:var(--bad);font-weight:600"; status.textContent = obsErrText(e.message); }
+  }},"Сохранить и проверить");
+  layer("Подключение OBS", [
+    h("ol",{class:"steps"},
+      h("li",{},"В OBS откройте Инструменты → Настройки сервера WebSocket, включите сервер, задайте пароль."),
+      h("li",{},"В OBS в Настройки → Вывод → Запись выберите формат MP4 и разрешение 720p или 1080p с невысоким битрейтом: бесплатный лимит 50 МБ на одно видео (примерно 2–3 минуты)."),
+      h("li",{},"Ниже укажите пароль и выберите папку, куда OBS сохраняет записи. Тогда видео будет загружаться само.")),
+    h("div",{class:"form"}, field("Адрес OBS", url), field("Пароль WebSocket", pw)),
+    h("div",{class:"bar"}, h("button",{class:"btn",onclick:async()=>{ if(await pickDir()) paintDir(); }},"Выбрать папку записей"), test),
+    dirLine, status,
+    h("p",{class:"small muted"},"Работает в Chrome или Edge на том же компьютере, где запущен OBS. Настройки запоминаются в этом браузере.")
+  ], [h("button",{class:"btn primary",onclick:()=>{ obsSave({url:url.value.trim(), password:pw.value}); closeLayer(); }},"Готово")]);
+}
+function roleCard(s, part, r, l, text, it){
+  const key = part+":"+r, v = (s.videos||{})[key];
+  const recNow = obsState.rec && obsState.rec.stratId===s.id && obsState.rec.key===key;
+  const can = state.canWrite && !state.offline;
+  if(!text && !v && !can) return null;
+  const label = l+" · "+(part==="default" ? "дефолт" : ((s.branches||[]).find(b=>"b:"+b.id===part)?.finish?.name || "доигровка"));
+  const acts = [];
+  if(v) acts.push(h("button",{class:"btn sm",onclick:()=>playVideo(s.id,key,label)},"▶ Видео"));
+  if(can) acts.push(recNow ? h("span",{class:"rec-now"},h("span",{class:"rec-dot"}),"Идёт запись") : h("button",{class:"btn ghost sm rec-btn",onclick:()=>obsRecord(s.id,key,label)}, v ? "Перезаписать" : "● Записать"));
+  return it(h("div",{class:"role-card"+(text||v?"":" rc-empty")}, h("b",{},l), text ? prose(text) : h("p",{class:"muted small"},"Не расписано"), acts.length ? h("div",{class:"rc-acts"},acts) : null));
 }
 
 /* ---------- boot ---------- */

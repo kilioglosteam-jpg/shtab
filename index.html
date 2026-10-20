@@ -266,8 +266,8 @@ details.past>summary{cursor:pointer;color:var(--muted);font-weight:600;margin-bo
 .field textarea{resize:vertical}
 .fset{grid-column:1/-1;font-family:var(--f-mono);font-size:12px;text-transform:uppercase;letter-spacing:.12em;color:var(--muted);border-top:1px solid var(--line);padding-top:12px;margin-top:4px}
 .lu-row{display:grid;grid-template-columns:120px minmax(0,1fr) auto;gap:10px;align-items:start;border:1px solid var(--line);border-radius:6px;padding:8px}
-.lu-line{display:grid;grid-template-columns:120px 190px minmax(0,1fr);gap:6px}
-.form.ct .lu-line{grid-template-columns:120px minmax(0,1fr)}
+.lu-line{display:grid;grid-template-columns:110px 130px 180px minmax(0,1fr);gap:6px}
+.form.ct .lu-line{grid-template-columns:110px 130px minmax(0,1fr)}
 .form.ct .lu-phase{display:none}
 .lu-phase{padding:6px 8px;border:1px solid var(--line);border-radius:6px;background:var(--bg);min-width:0}
 .lu-type{padding:6px 8px;border:1px solid var(--line);border-radius:6px;background:var(--bg)}
@@ -286,6 +286,42 @@ details.past>summary{cursor:pointer;color:var(--muted);font-weight:600;margin-bo
 .noimg{aspect-ratio:16/9;display:grid;place-items:center;background:var(--surface-2);color:var(--muted);font-size:12px}
 .lu-prev{width:120px;aspect-ratio:16/9;border-radius:4px;background:var(--surface-2);overflow:hidden;display:grid;place-items:center;color:var(--muted);font-size:11px}
 .lu-prev img{width:100%;height:100%;object-fit:cover}
+.ned{display:flex;flex-direction:column;gap:6px}
+.nrow{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:6px 8px;background:var(--bg);border:1px solid var(--line);border-radius:6px}
+.nrole{min-width:84px;font-weight:700;font-size:14px}
+.nbtns{display:flex;gap:4px;flex-wrap:wrap}
+.nbuy{min-width:34px;height:30px;border:1.5px dashed var(--line);background:none;color:var(--muted);font-family:var(--f-mono);font-weight:700;font-size:12px;cursor:pointer;border-radius:5px}
+.nbuy.on{border-style:solid;border-color:currentColor}
+.nbuy.on.n-smoke{background:var(--surface-2);color:var(--ink)}
+.nbuy.on.n-flash{background:color-mix(in srgb,#e8c547 35%,transparent);color:var(--ink)}
+.nbuy.on.n-molotov{background:color-mix(in srgb,var(--t) 22%,transparent);color:var(--t)}
+.nbuy.on.n-he{background:color-mix(in srgb,var(--bad) 16%,transparent);color:var(--bad)}
+.ncount{font-family:var(--f-mono);font-size:12px;color:var(--muted);margin-left:auto}
+.ncount.over{color:var(--bad);font-weight:700}
+.ndrops{display:flex;flex-direction:column;gap:6px;margin-top:4px}
+.ndrop{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.ndrop select{padding:5px 8px;border:1px solid var(--line);border-radius:6px;background:var(--surface);width:auto!important;flex:0 1 auto;min-width:0}
+.nsum{margin-top:10px}
+.nsum-in{display:flex;flex-direction:column;gap:8px}
+.ntable{display:grid;gap:4px 10px;align-items:center;overflow-x:auto}
+.nth{font-family:var(--f-mono);font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ncell,.nchips{display:flex;gap:3px;flex-wrap:wrap}
+.nchip{display:inline-grid;place-items:center;min-width:24px;height:22px;padding:0 4px;border-radius:4px;font-family:var(--f-mono);font-size:11px;font-weight:700}
+.nchip.n-smoke{background:var(--surface-2);color:var(--ink)}
+.nchip.n-flash{background:color-mix(in srgb,#e8c547 38%,transparent);color:var(--ink)}
+.nchip.n-molotov{background:color-mix(in srgb,var(--t) 24%,transparent);color:var(--t)}
+.nchip.n-he{background:color-mix(in srgb,var(--bad) 18%,transparent);color:var(--bad)}
+.nchip.now{box-shadow:0 0 0 2px var(--accent)}
+.nchip.gone{opacity:.3;text-decoration:line-through}
+.nchip.miss{background:none;color:var(--bad);box-shadow:inset 0 0 0 1.5px var(--bad)}
+.nlegend{display:flex;gap:12px;flex-wrap:wrap;font-size:12px;color:var(--muted)}
+.nlegend>span{display:inline-flex;align-items:center;gap:5px}
+.nissues{margin:0;padding-left:18px;color:var(--bad);font-size:13px;font-weight:600}
+.ngood{margin:0;color:var(--good);font-weight:600}
+.nstrip{display:flex;flex-direction:column;gap:6px}
+.nsrow{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.nsrow>b{min-width:84px;font-size:14px}
+.nsrow.acts>b{color:var(--accent)}
 .lu-fields{display:flex;flex-direction:column;gap:6px;min-width:0}
 .lu-fields input{padding:6px 8px;border:1px solid var(--line);border-radius:6px;background:var(--bg);width:100%;min-width:0}
 .lu-actions{display:flex;flex-direction:column;gap:6px}
@@ -1074,6 +1110,100 @@ function stratGrid(){
   return h("div",{class:"scols",id:"s-grid"}, col("T"), col("CT"));
 }
 const NADES = {smoke:"Смок",flash:"Флешка",molotov:"Молотов",he:"HE",decoy:"Декой"};
+/* ---------- grenade economy ---------- */
+const NADE_KINDS = [["smoke","С","Смок"],["flash","Ф","Флешка"],["molotov","М","Молотов"],["he","HE","HE"]];
+const NADE_MAX = {smoke:1, flash:2, molotov:1, he:1};
+const NADE_GEN = {smoke:"смока", flash:"флешки", molotov:"молотова", he:"HE"};
+const emptyInv = () => ({smoke:0, flash:0, molotov:0, he:0});
+const mapRoles = fn => Object.fromEntries(ROLES.map(([r])=>[r,fn(r)]));
+const invTotal = x => Object.values(x||{}).reduce((a,b)=>a+b,0);
+const addInv = (a,b) => Object.fromEntries(Object.keys(a).map(k=>[k,a[k]+((b||{})[k]||0)]));
+function nadeInv(nd){
+  const inv = mapRoles(r=>({...emptyInv(), ...(((nd||{}).buy||{})[r]||{})}));
+  for(const d of ((nd||{}).drops||[])) if(inv[d.to] && d.type in inv[d.to] && d.from!==d.to) inv[d.to][d.type]++;
+  return inv;
+}
+function useBy(lus){ const u = mapRoles(()=>emptyInv()); for(const l of lus) if(l.who && u[l.who] && NADE_MAX[l.type]) u[l.who][l.type]++; return u; }
+const hasNades = s => ROLES.some(([r])=>invTotal(nadeInv(s.nades)[r])) || (s.lineups||[]).some(l=>l.who);
+function nadePlan(s){
+  const inv = nadeInv(s.nades), lus = s.lineups||[], brs = s.branches||[], zero = mapRoles(()=>emptyInv());
+  if(s.side!=="T") return {inv, steps:[{key:"all", label:"За раунд", spent:zero, used:useBy(lus)}]};
+  const brIds = new Set(brs.map(b=>"b:"+b.id));
+  const defU = useBy(lus.filter(l=>!l.phase || l.phase==="default" || (l.phase.startsWith("b:") && !brIds.has(l.phase))));
+  const steps = [{key:"default", label:"Дефолт", spent:zero, used:defU}];
+  brs.forEach((b,i)=>steps.push({key:"b:"+b.id, label:(b.finish&&b.finish.name)||("Доигровка "+(i+1)), spent:defU, used:useBy(lus.filter(l=>l.phase==="finish"||l.phase==="b:"+b.id))}));
+  return {inv, steps};
+}
+// one chip per grenade: spent earlier (faded), thrown now (ring), still in hand; missing ones in red
+function nadeChips(have, spent, used){
+  const out = [];
+  for(const [k,short,name] of NADE_KINDS){
+    const n = have[k]||0, e = spent[k]||0, u = used[k]||0;
+    for(let i=0;i<Math.max(n,e+u);i++){
+      const st = i>=n ? "miss" : i<e ? "gone" : i<e+u ? "now" : "keep";
+      out.push(h("span",{class:"nchip n-"+k+" "+st,title:name+(st==="gone"?": уже кинул":st==="now"?": кидает здесь":st==="miss"?": её нет":": в запасе")},short));
+    }
+  }
+  return out.length ? out : [h("span",{class:"muted small"},"—")];
+}
+function nadeIssues(s){
+  const {inv, steps} = nadePlan(s), out = [];
+  for(const [r,l] of ROLES){
+    const x = inv[r];
+    if(invTotal(x)>4) out.push(l+": "+invTotal(x)+" гранат, а можно максимум 4");
+    for(const [k] of NADE_KINDS) if(x[k]>NADE_MAX[k]) out.push(l+": слишком много "+NADE_GEN[k]+" ("+x[k]+")");
+    for(const st of steps) for(const [k] of NADE_KINDS){ const need = st.spent[r][k]+st.used[r][k]; if(need>x[k]) out.push(l+" кидает "+NADE_GEN[k]+(st.key==="all"?"":" ("+st.label+")")+", а "+(!x[k]?"не покупает":st.spent[r][k]>=x[k]?"уже кинул на дефолте":"столько не покупает")); }
+  }
+  return out;
+}
+function nadeSummary(s){
+  const {inv, steps} = nadePlan(s), issues = nadeIssues(s);
+  const rows = ROLES.filter(([r])=>invTotal(inv[r]) || steps.some(st=>invTotal(st.used[r])));
+  if(!rows.length) return h("p",{class:"muted small",style:"margin:8px 0 0"},"Пока никто ничего не покупает.");
+  const tbl = h("div",{class:"ntable",style:`grid-template-columns:110px repeat(${steps.length},minmax(130px,1fr))`},
+    h("div",{class:"nth"}), steps.map(st=>h("div",{class:"nth"},st.key==="all"?"За раунд":st.key==="default"?"Дефолт":"→ "+st.label)),
+    rows.map(([r,l])=>[h("div",{class:"nrole"},l), steps.map(st=>h("div",{class:"ncell"}, nadeChips(inv[r], st.spent[r], st.used[r])))]));
+  return h("div",{class:"nsum-in"}, tbl, nadeLegend(),
+    issues.length ? h("ul",{class:"nissues"}, issues.map(t=>h("li",{},t))) : h("p",{class:"ngood small"},"Гранат хватает всем."));
+}
+const nadeLegend = () => h("div",{class:"nlegend"}, h("span",{},h("span",{class:"nchip n-smoke keep"},"С"),"в запасе"), h("span",{},h("span",{class:"nchip n-smoke now"},"С"),"кидает здесь"), h("span",{},h("span",{class:"nchip n-smoke gone"},"С"),"уже кинул"), h("span",{},h("span",{class:"nchip n-smoke miss"},"С"),"не хватает"));
+function nadeStrip(s, key){
+  const {inv, steps} = nadePlan(s), st = steps.find(x=>x.key===key) || steps.find(x=>x.key==="finish") || steps[0];
+  if(!st) return null;
+  const rows = ROLES.filter(([r])=>invTotal(inv[r]) || invTotal(st.used[r]));
+  return h("div",{class:"nstrip"}, rows.map(([r,l])=>h("div",{class:"nsrow"+(invTotal(st.used[r])?" acts":"")}, h("b",{},l), h("div",{class:"nchips"}, nadeChips(inv[r], st.spent[r], st.used[r])))), nadeLegend());
+}
+function nadeEditor(nd){
+  nd = nd || {};
+  const buy = mapRoles(r=>({...emptyInv(), ...((nd.buy||{})[r]||{})}));
+  const drops = (nd.drops||[]).map(d=>({...d}));
+  const box = h("div",{class:"ned"});
+  const roleSel = (v, on) => { const e = h("select",{}, ROLES.map(([k,l])=>h("option",{value:k},l))); e.value = v; e.addEventListener("change",()=>on(e.value)); return e; };
+  const draw = () => {
+    const inv = nadeInv({buy, drops});
+    box.replaceChildren(
+      ...ROLES.map(([r,l])=>{
+        const btns = [];
+        for(const [k,short,name] of NADE_KINDS) for(let i=1;i<=NADE_MAX[k];i++){
+          const on = buy[r][k]>=i;
+          btns.push(h("button",{type:"button",class:"nbuy n-"+k+(on?" on":""),"aria-pressed":String(on),title:name,onclick:()=>{ buy[r][k] = on ? i-1 : i; draw(); }},short));
+        }
+        const tot = invTotal(inv[r]), got = drops.filter(d=>d.to===r).length;
+        return h("div",{class:"nrow"}, h("b",{class:"nrole"},l), h("div",{class:"nbtns"},btns),
+          h("span",{class:"ncount"+(tot>4?" over":"")}, tot+"/4"+(got?" · +"+got+" скинули":"")),
+          h("button",{type:"button",class:"btn ghost sm",onclick:()=>{ drops.push({from:r, to:(ROLES.find(([x])=>x!==r)||ROLES[0])[0], type:"smoke"}); draw(); }},"Скинуть"));
+      }),
+      drops.length ? h("div",{class:"ndrops"}, h("span",{class:"lbl"},"Скидываем перед раундом (покупает и отдаёт)"), drops.map((d,i)=>{
+        const ty = h("select",{}, NADE_KINDS.map(([k,,n])=>h("option",{value:k},n))); ty.value = d.type; ty.addEventListener("change",()=>{ d.type=ty.value; draw(); });
+        return h("div",{class:"ndrop"}, roleSel(d.from,v=>{ d.from=v; draw(); }), h("span",{},"→"), roleSel(d.to,v=>{ d.to=v; draw(); }), ty,
+          h("button",{type:"button",class:"btn ghost sm danger",onclick:()=>{ drops.splice(i,1); draw(); }},"Убрать"));
+      })) : null);
+  };
+  draw();
+  box.read = () => ({buy:JSON.parse(JSON.stringify(buy)), drops:drops.filter(d=>d.from!==d.to).map(d=>({from:d.from,to:d.to,type:d.type}))});
+  return box;
+}
+
 async function uploadShot(blob, row, setPrev, btn, label){
   if(!state.assets){ toast("Загружать скрины может только владелец или редактор."); return; }
   if(btn){ btn.disabled=true; btn.textContent="Загружаю…"; }
@@ -1115,7 +1245,8 @@ function framePicker(row, setPrev){
 function lineupRow(l, phases){
   l = l||{};
   const row = h("div",{class:"lu-row"}); row.dataset.image = l.imageId||"";
-  const type = h("select",{class:"lu-type","aria-label":"Тип гранаты"}, Object.entries(NADES).map(([v,n])=>h("option",{value:v},n))); type.value = l.type||"smoke";
+  const type = h("select",{class:"lu-type","aria-label":"Тип гранаты"}, Object.entries(NADES).filter(([v])=>v!=="decoy"||l.type==="decoy").map(([v,n])=>h("option",{value:v},n))); type.value = l.type||"smoke";
+  const who = h("select",{class:"lu-who","aria-label":"Кто кидает"}, h("option",{value:""},"Кто кидает?"), ROLES.map(([k,n])=>h("option",{value:k},n))); who.value = l.who||"";
   const t = h("input",{class:"lu-title",type:"text",placeholder:"Куда: окно с T-спавна","aria-label":"Куда кидаем"}); t.value=l.title||"";
   const why = h("input",{class:"lu-why",type:"text",placeholder:"Зачем или против кого: отрезать AWP в окне","aria-label":"Зачем нужна граната"}); why.value=l.purpose||"";
   const u = h("input",{class:"lu-url",type:"url",placeholder:"Ссылка на видео (YouTube и т. п.)","aria-label":"Ссылка на видео"}); u.value=l.url||"";
@@ -1132,7 +1263,7 @@ function lineupRow(l, phases){
   phase.addEventListener("change",()=>{ phaseVal = phase.value; });
   phase.addEventListener("focus",fillPhase); phase.addEventListener("pointerdown",fillPhase);
   fillPhase();
-  row.read = () => ({type:type.value, phase:phaseVal, title:t.value.trim(), purpose:why.value.trim(), url:u.value.trim(), imageId:row.dataset.image||""});
+  row.read = () => ({type:type.value, who:who.value, phase:phaseVal, title:t.value.trim(), purpose:why.value.trim(), url:u.value.trim(), imageId:row.dataset.image||""});
   const acts = h("div",{class:"lu-actions"});
   if(state.assets){
     const file = h("input",{type:"file",accept:"image/png,image/jpeg,image/webp,image/gif",hidden:true,"aria-label":"Скриншот"});
@@ -1146,7 +1277,7 @@ function lineupRow(l, phases){
   }
   if(row.dataset.image) acts.append(h("button",{type:"button",class:"btn ghost sm",onclick:()=>{ row.dataset.image=""; setPrev(); }},"Убрать кадр"));
   acts.append(h("button",{type:"button",class:"btn ghost sm danger",onclick:()=>row.remove()},"Удалить"));
-  row.append(prev, h("div",{class:"lu-fields"}, h("div",{class:"lu-line"},type,phase,t), why, u), acts);
+  row.append(prev, h("div",{class:"lu-fields"}, h("div",{class:"lu-line"},type,who,phase,t), why, u), acts);
   return row;
 }
 const rolesInputs = (prefix, roles, area) => h("div",{class:"rgrid"}, ROLES.map(([k,l])=>field(l, area ? ta(prefix+k,(roles||{})[k],"",2) : inp(prefix+k,(roles||{})[k],"text",""))));
@@ -1190,6 +1321,11 @@ function stratForm(s, side){
   const brs = (s.branches||[]).length ? s.branches : (isNew ? [null,null] : []);
   brs.forEach(b=>brList.append(branchEditor(b,getMap)));
   const lus = h("div",{class:"lu-list"}, (s.lineups||[]).map(l=>lineupRow(l,phases)));
+  const nEd = nadeEditor(s.nades);
+  const nSum = h("div",{class:"nsum"});
+  const formStrat = () => ({side:sideSel.value, nades:nEd.read(), lineups:[...lus.querySelectorAll(".lu-row")].map(r=>r.read()), branches:[...brList.querySelectorAll(".br-ed")].map(x=>x.read())});
+  let nT = 0;
+  const redrawSum = () => { cancelAnimationFrame(nT); nT = requestAnimationFrame(()=>nSum.replaceChildren(nadeSummary(formStrat()))); };
   mapSel.addEventListener("change",()=>brList.querySelectorAll(".br-ed").forEach(x=>x.redraw()));
   const tBox = h("div",{class:"sub"},
     h("div",{class:"stage s1 wide"},"1 · Дефолт"),
@@ -1211,11 +1347,15 @@ function stratForm(s, side){
     field("Статус", sel("s-status",s.status,SSTATUS)),
     field("Когда вызываем", ta("s-call",s.call,"После двух проигранных раундов на A",2), true),
     tBox, cBox,
+    fset("Гранаты по игрокам"),
+    h("div",{class:"field wide"}, nEd, h("p",{class:"muted small",style:"margin:6px 0 0"},"Отметьте, кто что покупает. В «Раскидке» ниже укажите, кто кидает каждую гранату, и сайт посчитает остатки."), nSum),
     fset("Раскидка"),
     h("div",{class:"field wide"}, lus, h("div",{},h("button",{type:"button",class:"btn sm",onclick:()=>lus.append(lineupRow(null,phases))},"+ Гранату"))),
     !state.assets ? h("p",{class:"muted",style:"grid-column:1/-1;margin:0;font-size:13px"},"Загружать скрины может только владелец или редактор. Вы можете добавить ссылку на видео.") : null,
     field("Теги через запятую", inp("s-tags",(s.tags||[]).join(", "),"text","быстрая, против AWP, анти-эко"), true));
   sync();
+  redrawSum();
+  ["change","click","input"].forEach(ev=>body.addEventListener(ev, e=>{ if(!nSum.contains(e.target)) redrawSum(); }));
   const capProposal = !isNew && s.proposed===true && isCap();
   const doSave = async()=>{
     const name=val("s-name"); if(!name){ toast("Укажите название страты."); document.getElementById("s-name").focus(); return; }
@@ -1225,7 +1365,7 @@ function stratForm(s, side){
     const proposed = isNew ? !isCap() : (s.proposed===true && !approve);
     const doc = {name, map:val("s-map"), side:val("s-side"), roundType:val("s-round"), status:val("s-status"), call:val("s-call"),
       roles:readRoles("s-r-"), default:{until:val("d-until"), roles:readRoles("d-r-"), utility:val("d-util"), notes:val("d-notes")}, branches, lineups,
-      tags:val("s-tags").split(",").map(x=>x.trim()).filter(Boolean),
+      tags:val("s-tags").split(",").map(x=>x.trim()).filter(Boolean), nades:nEd.read(),
       proposed, author: s.author || (isNew ? state.me : "") || "", createdAt: s.createdAt || new Date().toISOString()};
     if(!proposed && s.proposed) doc.confirmedAt = new Date().toISOString();
     [save, ok].forEach(b=>b && (b.disabled=true));
@@ -1285,6 +1425,7 @@ function openStrat(id, fromEl){
         l.imageId ? h("img",{src:blobUrl(l.imageId),alt:l.title||"Раскидка",loading:"lazy"}) : h("div",{class:"noimg"},"нет кадра"),
         h("div",{}, h("div",{class:"lu-top"}, h("span",{class:"nade n-"+(l.type||"smoke")},NADES[l.type]||"Граната"), h("b",{},l.title||"")),
           l.purpose ? h("span",{class:"muted"},l.purpose) : null, ext(l.url,"Смотреть видео ↗")))))) : null,
+      hasNades(s) ? h("section",{class:"sec"}, h("h3",{},"Гранаты"), nadeStrip(s,"all")) : null,
       (s.tags||[]).length ? h("div",{class:"tags"}, s.tags.map(t=>h("span",{class:"tag"},"#"+t))) : null,
       s.proposed ? h("p",{class:"muted",style:"margin:0"},"Предложение"+(s.author?" от "+s.author:"")+". Ждёт подтверждения капитана.") : null,
       h("section",{class:"sec"}, h("h3",{},"Комментарии"), commentsBox(id)),
@@ -1457,6 +1598,7 @@ function openRound(id, fromEl, startStage){
       it(h("div",{class:"rv-kick s1"},"Часть 1 из 3 · Дефолт"+(d.until?" · держим до "+d.until:""))),
       s.call ? it(h("p",{class:"rv-lead"},s.call)) : null,
       roleCards.length ? h("div",{class:"role-grid"},roleCards) : it(h("p",{class:"muted"},"Расстановка в дефолте не расписана.")),
+      hasNades(s) ? it(h("div",{class:"rv-block"},h("h3",{},"Гранаты"),nadeStrip(s,"default"))) : null,
       defNades.length ? it(h("div",{class:"rv-block"},h("h3",{},"Гранаты на дефолте"),h("div",{class:"lineups"},defNades.map(lineupCard)))) : null,
       d.utility ? it(h("div",{class:"rv-block"},h("h3",{},"Заметки по гранатам"),prose(d.utility))) : null,
       d.notes ? it(h("div",{class:"rv-block"},h("h3",{},"Заметки"),prose(d.notes))) : null,
@@ -1485,6 +1627,7 @@ function openRound(id, fromEl, startStage){
         it(h("h3",{class:"rv-title"},f.name||"Доигровка")),
         it(h("div",{class:"zones"}, h("span",{class:"muted small"},"Если забрали:"), (b.taken||[]).length ? b.taken.map(z=>h("span",{class:"zone static"},z)) : h("span",{class:"muted small"},"ничего"))),
         froles.length ? h("div",{class:"role-grid"},froles) : it(h("p",{class:"muted"},"Роли в доигровке не расписаны.")),
+        hasNades(s) ? it(h("div",{class:"rv-block"},h("h3",{},"Гранаты"),nadeStrip(s,"b:"+b.id))) : null,
         (()=>{ const fn = nades.filter(l=>l.phase==="finish" || l.phase==="b:"+b.id); return fn.length ? it(h("div",{class:"rv-block"},h("h3",{},"Гранаты на доигровке"),h("div",{class:"lineups"},fn.map(lineupCard)))) : null; })(),
         f.utility ? it(h("div",{class:"rv-block"},h("h3",{},"Заметки по гранатам"),prose(f.utility))) : null,
         f.notes ? it(h("div",{class:"rv-block"},h("h3",{},"Заметки"),prose(f.notes))) : null,

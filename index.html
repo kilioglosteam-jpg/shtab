@@ -345,6 +345,11 @@ details.past>summary{cursor:pointer;color:var(--muted);font-weight:600;margin-bo
 .login{max-width:380px;margin:12vh auto 0;display:flex;flex-direction:column;gap:12px;background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:24px}
 .login-t{font-family:var(--f-display);font-weight:400;font-size:24px}
 .login input{padding:10px 12px;border:1px solid var(--line);border-radius:6px;background:var(--bg);font-size:16px}
+.login-who{display:flex}
+.login-who button{flex:1;padding:9px 12px;font-size:14px}
+.props{display:flex;flex-direction:column;gap:8px;padding:12px;border:1.5px dashed var(--warn);border-radius:10px;background:color-mix(in srgb,var(--warn) 7%,transparent)}
+.props .rgroup-h{color:var(--warn)}
+.props .rgroup-h::after{background:color-mix(in srgb,var(--warn) 40%,transparent)}
 .login-err{color:var(--bad);font-weight:600}
 .banner.import{display:flex;gap:12px;align-items:center;flex-wrap:wrap;justify-content:space-between;border-left-color:var(--ct)}
 .logout{margin-left:6px}
@@ -400,7 +405,7 @@ img{max-width:100%}
 
 <header class="top">
   <div class="top-in">
-    <div class="brand"><b>ШТАБ</b><span>календарь · стратбук · бэклог · соперники</span><button class="btn ghost sm me" id="me" type="button" hidden></button><button class="btn ghost sm logout" id="logout" type="button" hidden>Выйти</button></div>
+    <div class="brand"><b>ШТАБ</b><span>календарь · стратбук · соперники</span><button class="btn ghost sm me" id="me" type="button" hidden></button><button class="btn ghost sm logout" id="logout" type="button" hidden>Выйти</button></div>
     <nav class="tabs" role="tablist" id="tabs"></nav>
   </div>
 </header>
@@ -428,14 +433,14 @@ const OUTCOME = {"":"Ещё не играли",win:"Победа",loss:"Пора
 
 const state = {tab:"calendar", tournaments:[], strats:[], opponents:[], events:[], comments:[], players:[], maps:DEFAULT_MAPS.slice(),
   db:null, assets:null, canWrite:true, loaded:{t:false,s:false,o:false,e:false,c:false,team:false}, offline:false,
-  email:"", isCaptain:false, captainReady:false, me:"",
+  email:"", isCaptain:false, captainReady:false, captainName:"", me:"",
   sf:{q:"",map:"",side:"",rt:"",st:"",zones:[]}, zones:{}, oq:"", modal:null,
   cal:{y:new Date().getFullYear(), m:new Date().getMonth(), mode:"month"}};
 
-try{ const t = localStorage.getItem("shtab.tab"); if(t) state.tab = t; }catch(e){}
+try{ const t = localStorage.getItem("shtab.tab"); if(t && t!=="backlog") state.tab = t; }catch(e){}
 try{ const cm = localStorage.getItem("shtab.calmode"); if(cm==="list"||cm==="month") state.cal.mode = cm; }catch(e){}
 try{ state.me = localStorage.getItem("shtab.me") || ""; }catch(e){}
-if(["calendar","strats","backlog","opponents"].includes(location.hash.slice(1))) state.tab = location.hash.slice(1);
+if(["calendar","strats","opponents"].includes(location.hash.slice(1))) state.tab = location.hash.slice(1);
 
 /* ---------- helpers ---------- */
 function h(tag, attrs, ...kids){
@@ -524,7 +529,7 @@ function refreshDetail(){ if(state.modal && (state.modal.kind==="detail"||state.
 
 /* ---------- tabs ---------- */
 function renderTabs(){
-  const tabs = [["calendar","Календарь",state.tournaments.length+state.events.length],["strats","Стратбук",tactics().length],["backlog","Бэклог",proposals().length],["opponents","Соперники",state.opponents.length]];
+  const tabs = [["calendar","Календарь",state.tournaments.length+state.events.length],["strats","Стратбук",tactics().length],["opponents","Соперники",state.opponents.length]];
   document.getElementById("tabs").replaceChildren(...tabs.map(([k,l,n])=>h("button",{class:"tab",role:"tab","aria-selected":String(state.tab===k),onclick:()=>{state.tab=k; try{localStorage.setItem("shtab.tab",k);}catch(e){} render(); window.scrollTo(0,0);}}, l, h("span",{class:"n"},n))));
 }
 
@@ -541,7 +546,6 @@ function render(){
   if(state.offline) kids.push(h("div",{class:"banner"},"Общее хранилище недоступно в этом просмотре. Откройте страницу на claude.ai, войдя в аккаунт, чтобы видеть и добавлять данные команды."));
   else if(!state.canWrite) kids.push(h("div",{class:"banner"},"У вас доступ только на просмотр. Чтобы добавлять турниры и страты, попросите владельца выдать доступ «Участник»."));
   if(state.tab==="strats") kids.push(...viewStrats());
-  else if(state.tab==="backlog") kids.push(...viewBacklog());
   else if(state.tab==="opponents") kids.push(...viewOpponents());
   else kids.push(...viewCalendar());
   const act = document.activeElement, actId = act && m.contains(act) ? act.id : null, pos = actId && act.selectionStart;
@@ -691,7 +695,7 @@ function addChooser(date){
 }
 function playersPicker(chosen){
   const set = new Set(chosen||[]);
-  const names = [...new Set([...state.players, ...set])];
+  const names = [...new Set([...(state.captainName?[state.captainName]:[]), ...state.players, ...set])];
   if(!names.length) return {el: inp("ev-who",(chosen||[]).join(", "),"text","Ники через запятую"), read:()=>val("ev-who").split(",").map(x=>x.trim()).filter(Boolean)};
   const box = h("div",{class:"pchks"}, names.map(n=>h("label",{class:"pchk"}, h("input",{type:"checkbox",value:n,checked:set.has(n)||null}), h("span",{},n))));
   return {el:box, read:()=>[...box.querySelectorAll("input:checked")].map(x=>x.value)};
@@ -918,12 +922,16 @@ function stratGrid(){
   const canAdd = canWriteNow();
   const col = side => {
     const mine = list.filter(s=>(s.side||"T")===side);
+    const props = proposals().filter(s=>(s.side||"T")===side && stratMatches(s)).sort((a,b)=>(b.createdAt||"").localeCompare(a.createdAt||""));
     const groups = [...types.map(k=>[ROUND_TYPES[k], mine.filter(s=>s.roundType===k)]), ["Без типа", mine.filter(s=>!ROUND_TYPES[s.roundType])]].filter(g=>g[1].length);
     return h("section",{class:"scol "+side,"aria-label":side+"-сторона"},
       h("div",{class:"scol-head"}, h("span",{class:"side "+side},side), h("b",{},side==="T"?"Атака":"Защита"), h("span",{class:"mono muted"},mine.length)),
+      props.length ? h("div",{class:"props"}, h("div",{class:"rgroup-h"}, h("span",{},"Предложения"), h("span",{class:"mono muted"},props.length)),
+        isCap() ? h("p",{class:"muted small"},"Предложили игроки. «Подтверждаю» сделает страту тактикой.") : h("p",{class:"muted small"},"Ждут подтверждения капитана. Обсуждайте их в комментариях."),
+        h("div",{class:"grid bgrid"}, props.map(s=>bCard(s)))) : null,
       groups.map(([l,arr])=>h("div",{class:"rgroup"}, h("div",{class:"rgroup-h"}, h("span",{},l), h("span",{class:"mono muted"},arr.length)), h("div",{class:"grid"}, arr.map(s=>stratCard(s))))),
       !mine.length && tactics().some(s=>(s.side||"T")===side) ? h("p",{class:"muted scol-none"},"Ничего не нашлось. Попробуйте сбросить фильтры.") : null,
-      canAdd ? h("div",{class:"grid"}, addCell(isCap() ? "Новая "+side+"-страта" : "Предложить "+side+"-страту", ()=>stratForm(null, side))) : null);
+      canAdd ? h("div",{class:"grid"}, addCell(isCap() ? "Новая "+side+"-тактика" : "Предложить "+side+"-тактику", ()=>stratForm(null, side))) : null);
   };
   return h("div",{class:"scols",id:"s-grid"}, col("T"), col("CT"));
 }
@@ -1058,7 +1066,7 @@ function stratForm(s, side){
   const sync = () => { const t = sideSel.value==="T"; tBox.hidden=!t; cBox.hidden=t; if(body) body.classList.toggle("ct",!t); };
   sideSel.addEventListener("change",sync);
   body = h("div",{class:"form"},
-    isNew && !isCap() ? h("p",{class:"muted",style:"grid-column:1/-1;margin:0;font-size:13px"},"Это будет предложение"+(state.me?" от "+state.me:"")+". Оно появится в бэклоге, и капитан решит, брать ли его в стратбук.") : null,
+    isNew && !isCap() ? h("p",{class:"muted",style:"grid-column:1/-1;margin:0;font-size:13px"},"Это будет предложение"+(state.me?" от "+state.me:"")+". Оно появится в стратбуке в блоке «Предложения», и капитан решит, брать ли его в тактики.") : null,
     field("Название", inp("s-name",s.name,"text","Например, Контроль мида"), true),
     field("Карта", mapSel), field("Сторона", sideSel),
     field("Тип раунда", sel("s-round",s.roundType,ROUND_TYPES)),
@@ -1084,7 +1092,7 @@ function stratForm(s, side){
     if(!proposed && s.proposed) doc.confirmedAt = new Date().toISOString();
     [save, ok].forEach(b=>b && (b.disabled=true));
     if(await put("strats",id,doc)){
-      toast(isNew ? (proposed ? "Предложение отправлено в бэклог" : "Страта добавлена") : (!proposed && s.proposed ? "Подтверждено, страта в стратбуке" : "Сохранено"));
+      toast(isNew ? (proposed ? "Предложение добавлено, капитан его посмотрит" : "Страта добавлена") : (!proposed && s.proposed ? "Подтверждено, теперь это тактика" : "Сохранено"));
       state.strats=upsert(state.strats,{id,...doc}); openStrat(id);
     }
     else [save, ok].forEach(b=>b && (b.disabled=false));
@@ -1140,7 +1148,7 @@ function openStrat(id, fromEl){
         h("div",{}, h("div",{class:"lu-top"}, h("span",{class:"nade n-"+(l.type||"smoke")},NADES[l.type]||"Граната"), h("b",{},l.title||"")),
           l.purpose ? h("span",{class:"muted"},l.purpose) : null, ext(l.url,"Смотреть видео ↗")))))) : null,
       (s.tags||[]).length ? h("div",{class:"tags"}, s.tags.map(t=>h("span",{class:"tag"},"#"+t))) : null,
-      s.proposed ? h("p",{class:"muted",style:"margin:0"},"Предложение"+(s.author?" от "+s.author:"")+". Пока лежит в бэклоге.") : null,
+      s.proposed ? h("p",{class:"muted",style:"margin:0"},"Предложение"+(s.author?" от "+s.author:"")+". Ждёт подтверждения капитана.") : null,
       h("section",{class:"sec"}, h("h3",{},"Комментарии"), commentsBox(id)),
     ];
     const actions = canEditStrat(s) ? [h("button",{class:"btn danger left",onclick:()=>deleteStratAsk(s)},"Удалить"), h("button",{class:"btn",onclick:()=>stratForm(s)},"Редактировать"), s.proposed && isCap() ? h("button",{class:"btn primary",onclick:()=>confirmStrat(s)},"Подтверждаю") : null].filter(Boolean) : [];
@@ -1171,7 +1179,7 @@ function mapsForm(){
 async function confirmStrat(s){
   const cur = state.strats.find(x=>x.id===s.id) || s; const {id, ...rest} = cur;
   const doc = {...rest, proposed:false, confirmedAt:new Date().toISOString()};
-  if(await put("strats",id,doc)){ state.strats = upsert(state.strats,{id,...doc}); toast("Подтверждено, страта в стратбуке"); closeModal(); render(); }
+  if(await put("strats",id,doc)){ state.strats = upsert(state.strats,{id,...doc}); toast("Подтверждено, теперь это тактика"); closeModal(); render(); }
 }
 
 /* ---------- comments ---------- */
@@ -1199,30 +1207,23 @@ function commentsBox(id){
       h("button",{type:"button",class:"cm-who",onclick:()=>askMe()}, state.me ? "Вы пишете как "+state.me : "Сначала выберите, кто вы"), send)) : null);
 }
 
-/* ---------- backlog ---------- */
-function viewBacklog(){
-  const out = [h("div",{class:"bar"}, h("h1",{},"Бэклог"))];
-  out.push(h("p",{class:"muted",style:"margin:0;max-width:70ch"}, isCap()
-    ? "Здесь предложения игроков. «Подтверждаю» переносит страту в стратбук. «Редактировать» откроет правку, после неё можно сразу подтвердить."
-    : "Здесь предложения игроков, ваши и чужие. Капитан подтвердит лучшие, и они переедут в стратбук. Обсуждайте их в комментариях."));
-  if(!state.loaded.s && !state.offline) return [...out, loading()];
-  const list = proposals().sort((a,b)=>(b.createdAt||b.updatedAt||"").localeCompare(a.createdAt||a.updatedAt||""));
-  if(!list.length) out.push(h("p",{style:"margin:0"},"Новых предложений нет."));
-  out.push(h("div",{class:"grid bgrid"}, list.map(s=>bCard(s)), canWriteNow() && !isCap() ? addCell("Предложить страту", ()=>stratForm(null,"T")) : null));
-  return out;
-}
+/* ---------- proposals ---------- */
 function bCard(s){
-  const by = h("p",{class:"by"}, "Автор: "+(s.author||"не указан")+(s.createdAt?" · "+fmtD(s.createdAt):""));
   const acts = isCap() && canWriteNow() ? h("div",{class:"bacts"},
     h("button",{class:"btn primary sm",onclick:()=>confirmStrat(s)},"Подтверждаю"),
     h("button",{class:"btn sm",onclick:()=>stratForm(s)},"Редактировать")) : null;
-  return h("div",{class:"bcard"}, stratCard(s, true, by), acts);
+  const by2 = h("p",{class:"by"}, (ROUND_TYPES[s.roundType]||"")+" · "+(s.author||"автор не указан")+(s.createdAt?" · "+fmtD(s.createdAt):""));
+  return h("div",{class:"bcard"}, stratCard(s, false, by2), acts);
 }
 
 /* ---------- who am I / roster ---------- */
 function askMe(){
-  const ps = state.players;
-  const pick = name => { state.me = name; try{ localStorage.setItem("shtab.me",name); }catch(e){} closeModal(); render(); toast("Привет, "+name+"!"); };
+  const ps = state.isCaptain ? state.players : state.players.filter(p=>p!==state.captainName);
+  const pick = name => {
+    state.me = name; try{ localStorage.setItem("shtab.me",name); }catch(e){}
+    if(state.isCaptain && name!==state.captainName){ state.captainName = name; saveTeam({}); }
+    closeModal(); render(); toast("Привет, "+name+"!");
+  };
   const other = inp("me-name", ps.includes(state.me) ? "" : state.me, "text", "Ваш ник");
   const body = [
     h("p",{class:"muted",style:"margin:0"},"Этим именем подписываются комментарии, предложения и личные тренировки. Устройство запомнит выбор."),
@@ -1234,17 +1235,24 @@ function askMe(){
     const saveR = h("button",{class:"btn sm",type:"button",onclick:async()=>{
       const players = [...new Set(r.value.split("\n").map(x=>x.trim()).filter(Boolean))];
       saveR.disabled = true;
-      if(await put("settings","team",{players, captainReady:state.captainReady})){ state.players = players; toast("Состав сохранён"); askMe(); }
+      if(await saveTeam({players})){ state.players = players; toast("Состав сохранён"); askMe(); }
       else saveR.disabled = false;
     }},"Сохранить состав");
     body.push(h("section",{class:"sec"}, h("h3",{},"Состав команды (видите только вы)"), field("Игроки", r, true), h("div",{},saveR)));
   }
+  if(state.isCaptain) body.splice(1,0,h("p",{style:"margin:0"},"Вы вошли как капитан. Выберите своё имя один раз, и сайт будет узнавать вас на любом устройстве."));
   openModal("Кто вы?", body, [h("button",{class:"btn ghost",onclick:closeModal},"Закрыть")]);
 }
 function ensureCaptainFlag(){
   if(!state.isCaptain || state.captainReady || !state.loaded.team) return;
   state.captainReady = true;
-  put("settings","team",{players:state.players, captainReady:true});
+  saveTeam({});
+}
+const saveTeam = patch => put("settings","team",{players:state.players, captainReady:state.captainReady, captainName:state.captainName, ...patch});
+function applyIdentity(){
+  if(state.isCaptain && !state.captainName && state.me && state.loaded.team){ state.captainName = state.me; saveTeam({}); }
+  if(state.isCaptain && state.captainName) state.me = state.captainName;
+  else if(!state.isCaptain && state.captainName && state.me===state.captainName && state.captainReady){ state.me = ""; try{ localStorage.removeItem("shtab.me"); }catch(e){} }
 }
 
 /* ---------- round viewer ---------- */
@@ -1266,7 +1274,7 @@ function openRound(id, fromEl, startStage){
   const cmBtn = h("button",{class:"btn sm",type:"button","aria-expanded":"false",onclick:()=>{ cmPanel.hidden=!cmPanel.hidden; cmBtn.setAttribute("aria-expanded",String(!cmPanel.hidden)); drawCm(); if(!cmPanel.hidden) cmPanel.querySelector("textarea")?.focus(); }});
   const cmPanel = h("aside",{class:"rv-cm",hidden:true,"aria-label":"Комментарии"});
   const drawCm = () => { cmBtn.textContent = "💬 Комментарии"+(commentsFor(id).length?" · "+commentsFor(id).length:""); if(!cmPanel.hidden) keepFocus(()=>cmPanel.replaceChildren(h("div",{class:"rv-cm-h"}, h("b",{},"Комментарии"), h("button",{type:"button",class:"icon-btn","aria-label":"Скрыть комментарии",onclick:()=>{ cmPanel.hidden=true; cmBtn.setAttribute("aria-expanded","false"); }},"×")), commentsBox(id))); };
-  const back = s0.proposed ? "← Бэклог" : "← Стратбук";
+  const back = "← Стратбук";
   const head = h("header",{class:"rv-head"}, h("button",{class:"btn ghost sm",onclick:closeModal,"aria-label":"Назад"},back), h("div",{class:"rv-titles"},title,meta), cmBtn, editBtn, okBtn);
 
   const labels = h("div",{class:"tl-labels"});
@@ -1569,24 +1577,28 @@ const assetsApi = {
 
 function showLogin(msg){
   document.getElementById("tabs").replaceChildren();
-  const pw = h("input",{id:"login-pw",type:"password",autocomplete:"current-password",placeholder:"Пароль команды","aria-label":"Пароль команды"});
+  let who = "team"; try{ if(localStorage.getItem("shtab.who")==="captain") who="captain"; }catch(e){}
+  const pw = h("input",{id:"login-pw",type:"password",autocomplete:"current-password","aria-label":"Пароль"});
+  const seg = h("div",{class:"seg login-who",role:"group","aria-label":"Кто входит"});
+  const setWho = w => { who = w; seg.querySelectorAll("button").forEach(b=>b.setAttribute("aria-pressed",String(b.dataset.w===w))); pw.placeholder = w==="captain" ? "Пароль капитана" : "Пароль команды"; };
+  seg.append(...[["captain","Капитан"],["team","Команда"]].map(([w,l])=>h("button",{type:"button","data-w":w,onclick:()=>{ setWho(w); pw.focus(); }},l)));
+  setWho(who);
   const btn = h("button",{class:"btn primary",type:"submit"},"Войти");
   const form = h("form",{class:"login"},
     h("b",{class:"login-t"},"Вход в штаб"),
-    h("span",{class:"muted"},"Введите пароль команды. Устройство запомнит его, и в следующий раз вводить не придётся."),
-    pw, btn, msg ? h("span",{class:"login-err"},msg) : null);
+    h("span",{class:"muted"},"Выберите, кто входит, и введите пароль. Устройство запомнит вход."),
+    seg, pw, btn, msg ? h("span",{class:"login-err"},msg) : null);
   form.addEventListener("submit", async e=>{
-    e.preventDefault(); if(!pw.value) return;
+    e.preventDefault(); if(!pw.value){ pw.focus(); return; }
     btn.disabled = true; btn.textContent = "Проверяю…";
-    let {error} = await sb.auth.signInWithPassword({email:TEAM_EMAIL, password:pw.value});
-    if(error && /invalid|credentials/i.test(error.message)) ({error} = await sb.auth.signInWithPassword({email:CAPTAIN_EMAIL, password:pw.value}));
-    if(error){ showLogin(/invalid|credentials/i.test(error.message) ? "Неверный пароль. Спросите его у капитана." : "Не получилось войти. Проверьте интернет и попробуйте ещё раз."); return; }
+    const {error} = await sb.auth.signInWithPassword({email: who==="captain" ? CAPTAIN_EMAIL : TEAM_EMAIL, password:pw.value});
+    if(error){ showLogin(/invalid|credentials/i.test(error.message) ? (who==="captain" ? "Неверный пароль капитана." : "Неверный пароль команды. Спросите его у капитана.") : "Не получилось войти. Проверьте интернет и попробуйте ещё раз."); return; }
+    try{ localStorage.setItem("shtab.who", who); }catch(e){}
     start();
   });
   document.getElementById("main").replaceChildren(form);
   pw.focus();
 }
-
 function maybeOfferImport(){
   if(state.tournaments.length || state.strats.length || state.opponents.length) return;
   const file = h("input",{type:"file",accept:"application/json,.json",hidden:true,"aria-label":"Файл с данными"});
@@ -1636,11 +1648,11 @@ function start(){
   sub2("events","e"); sub2("comments","c");
   db.doc("settings/team").onSnapshot(s=>{
     const dt = s.exists ? s.data() : {}; const first = !state.loaded.team; state.loaded.team = true;
-    state.players = Array.isArray(dt.players) ? dt.players : []; state.captainReady = !!dt.captainReady;
-    ensureCaptainFlag(); render();
-    if(first && !state.me && !state.modal) askMe();
+    state.players = Array.isArray(dt.players) ? dt.players : []; state.captainReady = !!dt.captainReady; state.captainName = dt.captainName || "";
+    ensureCaptainFlag(); applyIdentity(); render();
+    if(first && !state.me && !state.modal) setTimeout(()=>{ if(!state.me && !state.modal) askMe(); }, 400);
   }, ()=>{ state.loaded.team = true; });
-  sb.auth.getSession().then(({data})=>{ state.email = (data && data.session && data.session.user && data.session.user.email) || ""; state.isCaptain = state.email===CAPTAIN_EMAIL; ensureCaptainFlag(); render(); });
+  sb.auth.getSession().then(({data})=>{ state.email = (data && data.session && data.session.user && data.session.user.email) || ""; state.isCaptain = state.email===CAPTAIN_EMAIL; ensureCaptainFlag(); applyIdentity(); render(); });
   db.doc("settings/maps").onSnapshot(s=>{ const dt = s.exists ? s.data() : null; if(!dt) return; if(Array.isArray(dt.maps) && dt.maps.length) state.maps=dt.maps.slice(); if(dt.zones && typeof dt.zones==="object") state.zones=dt.zones; if(state.tab==="strats" && !state.modal) render(); }, ()=>{});
 }
 (async()=>{

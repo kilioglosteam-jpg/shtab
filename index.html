@@ -991,7 +991,7 @@ function openRound(id, fromEl, startStage){
   const title = h("h2",{class:"rv-name"});
   const meta = h("div",{class:"chips",style:"margin:0"});
   const editBtn = state.canWrite&&!state.offline ? h("button",{class:"btn sm",onclick:()=>{ const s=state.strats.find(x=>x.id===id); if(s) stratForm(s); }},"Редактировать") : null;
-  const obsBtn = state.canWrite&&!state.offline ? h("button",{class:"btn ghost sm",onclick:()=>obsSettings()},"OBS") : null;
+  const obsBtn = OBS_ENABLED && state.canWrite&&!state.offline ? h("button",{class:"btn ghost sm",onclick:()=>obsSettings()},"OBS") : null;
   const head = h("header",{class:"rv-head"}, h("button",{class:"btn ghost sm",onclick:closeModal,"aria-label":"Назад к стратбуку"},"← Стратбук"), h("div",{class:"rv-titles"},title,meta), obsBtn, editBtn);
 
   const labels = h("div",{class:"tl-labels"});
@@ -1187,6 +1187,7 @@ function openOpponent(id){
 }
 
 /* ---------- OBS recording ---------- */
+const OBS_ENABLED = false;
 const MAX_VIDEO = 50*1024*1024;
 const obsState = {ws:null, ready:false, rec:null, pending:null, needPick:false, uploading:false, reqs:{}, dir:null};
 const obsCfg = () => { try{ return JSON.parse(localStorage.getItem("shtab.obs")||"{}"); }catch(e){ return {}; } };
@@ -1355,7 +1356,7 @@ async function obsSettings(err){
 function roleCard(s, part, r, l, text, it){
   const key = part+":"+r, v = (s.videos||{})[key];
   const recNow = obsState.rec && obsState.rec.stratId===s.id && obsState.rec.key===key;
-  const can = state.canWrite && !state.offline;
+  const can = OBS_ENABLED && state.canWrite && !state.offline;
   if(!text && !v && !can) return null;
   const label = l+" · "+(part==="default" ? "дефолт" : ((s.branches||[]).find(b=>"b:"+b.id===part)?.finish?.name || "доигровка"));
   const acts = [];

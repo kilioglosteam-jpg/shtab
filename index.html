@@ -1,0 +1,1311 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Штаб CS2</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Golos+Text:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&family=Russo+One&display=swap">
+<style>
+/* Layout: sticky tab bar over one working column; cards in auto-fill grids; detail and forms in a sheet overlay. */
+:root{
+  --bg:#eceef1; --surface:#f9fafb; --surface-2:#e1e5ea; --ink:#15191e; --muted:#5a6470; --line:#cdd3da;
+  --accent:#b8700f; --accent-ink:#ffffff; --on-strong:#ffffff; --t:#b06a0c; --ct:#2c6bc0;
+  --good:#2b8049; --warn:#a86d12; --bad:#bb3a2c; --shadow:0 12px 40px rgba(20,28,40,.18);
+  --f-display:"Russo One","Golos Text",system-ui,sans-serif;
+  --f-body:"Golos Text",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --f-mono:"JetBrains Mono",ui-monospace,"SFMono-Regular",Menlo,monospace;
+}
+@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){
+  --bg:#101318; --surface:#181c22; --surface-2:#222831; --ink:#e6e9ed; --muted:#97a1ad; --line:#2d343e;
+  --accent:#e8a13a; --accent-ink:#1a1206; --on-strong:#0d1014; --t:#e8a13a; --ct:#5d9ef2;
+  --good:#4fbb75; --warn:#e2a843; --bad:#ec6c5e; --shadow:0 12px 40px rgba(0,0,0,.5); color-scheme:dark } }
+:root[data-theme="dark"]{
+  --bg:#101318; --surface:#181c22; --surface-2:#222831; --ink:#e6e9ed; --muted:#97a1ad; --line:#2d343e;
+  --accent:#e8a13a; --accent-ink:#1a1206; --on-strong:#0d1014; --t:#e8a13a; --ct:#5d9ef2;
+  --good:#4fbb75; --warn:#e2a843; --bad:#ec6c5e; --shadow:0 12px 40px rgba(0,0,0,.5); color-scheme:dark }
+
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:15px;line-height:1.5}
+body.locked{overflow:hidden}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--surface)}
+button,input,select,textarea{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+a{color:var(--ct)}
+
+.top{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--surface);border-bottom:1px solid var(--line)}
+.top-in{max-width:1180px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:12px 0;display:flex;flex-wrap:wrap;align-items:flex-end;gap:8px 24px}
+.brand{display:flex;align-items:baseline;gap:10px;padding-bottom:12px}
+.brand b{font-family:var(--f-display);font-weight:400;font-size:22px;letter-spacing:.02em}
+.brand span{color:var(--muted);font-size:13px}
+.tabs{display:flex;gap:4px;overflow-x:auto;margin-left:auto}
+.tab{background:none;border:0;border-bottom:3px solid transparent;padding:8px 12px 10px;cursor:pointer;font-weight:600;color:var(--muted);white-space:nowrap;display:flex;gap:6px;align-items:center}
+.tab[aria-selected="true"]{color:var(--ink);border-bottom-color:var(--accent)}
+.tab .n{font-family:var(--f-mono);font-size:12px;background:var(--surface-2);border-radius:99px;padding:0 7px;color:var(--muted)}
+
+main{max-width:1180px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:20px 64px;display:flex;flex-direction:column;gap:20px}
+.bar{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+.bar h1{font-family:var(--f-display);font-weight:400;font-size:24px;margin:0;margin-right:auto;text-wrap:balance}
+.banner{background:var(--surface-2);border-left:3px solid var(--warn);padding:10px 14px;border-radius:4px;color:var(--ink)}
+
+.btn{border:1px solid var(--line);background:var(--surface);padding:8px 14px;border-radius:6px;cursor:pointer;font-weight:600;display:inline-flex;align-items:center;gap:6px}
+.btn:hover{border-color:var(--muted)}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.btn.danger{color:var(--bad)}
+.btn.danger.armed{background:var(--bad);border-color:var(--bad);color:#fff}
+.btn.ghost{background:none}
+.btn.sm{padding:4px 10px;font-size:13px}
+.btn:disabled{opacity:.5;cursor:default}
+
+.month{font-family:var(--f-mono);font-size:12px;text-transform:uppercase;letter-spacing:.12em;color:var(--muted);margin:8px 0 -8px}
+.list{display:flex;flex-direction:column;gap:10px}
+.tcard{display:grid;grid-template-columns:76px minmax(0,1fr) auto;gap:16px;align-items:center;background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:14px 16px;cursor:pointer;text-align:left;width:100%}
+.tcard:hover{border-color:var(--muted)}
+.dblock{font-family:var(--f-mono);text-align:center;border-right:1px solid var(--line);padding-right:14px;font-variant-numeric:tabular-nums}
+.dblock b{display:block;font-size:22px;font-weight:600;line-height:1.1}
+.dblock small{color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:.08em}
+.tname{font-weight:700;font-size:17px;margin:0 0 2px}
+.meta{color:var(--muted);font-size:13px}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.chip{font-size:12px;font-weight:600;padding:2px 9px;border-radius:99px;background:var(--surface-2);color:var(--ink);white-space:nowrap}
+.chip.s-plan{box-shadow:inset 0 0 0 1px var(--line);background:none}
+.chip.s-reg{background:color-mix(in srgb,var(--ct) 18%,transparent);color:var(--ct)}
+.chip.s-live{background:color-mix(in srgb,var(--good) 20%,transparent);color:var(--good)}
+.chip.s-done{color:var(--muted)}
+.chip.warn{background:color-mix(in srgb,var(--warn) 20%,transparent);color:var(--warn)}
+.chip.bad{background:color-mix(in srgb,var(--bad) 16%,transparent);color:var(--bad)}
+.chip.good{background:color-mix(in srgb,var(--good) 18%,transparent);color:var(--good)}
+.chip.form{background:none;box-shadow:inset 0 0 0 1px var(--accent);color:var(--accent)}
+.side{font-family:var(--f-mono);font-weight:600;font-size:12px;padding:2px 8px;border-radius:4px;color:#fff}
+.side.T{background:var(--t)} .side.CT{background:var(--ct)}
+:root[data-theme="dark"] .side.T{color:#1a1206}
+@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]) .side.T{color:#1a1206} }
+.tright{text-align:right;font-family:var(--f-mono);font-size:13px;color:var(--muted);font-variant-numeric:tabular-nums}
+.tright b{display:block;font-size:18px;color:var(--ink)}
+.calnav{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:-8px}
+.calnav h2{font-family:var(--f-display);font-weight:400;font-size:20px;margin:0;min-width:170px;text-align:center}
+.calwrap{border:1px solid var(--line);border-radius:8px;overflow:hidden;background:var(--surface)}
+.cal-dow{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));border-bottom:1px solid var(--line);font-family:var(--f-mono);font-size:11px;text-transform:uppercase;letter-spacing:.1em;color:var(--muted)}
+.cal-dow div{padding:6px 8px}
+.cal-dow div:nth-child(n+6){color:var(--accent)}
+.week{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));row-gap:3px;border-top:1px solid var(--line);min-height:104px}
+.week:first-child{border-top:0}
+.day{position:relative;border-left:1px solid var(--line);padding:5px 7px;min-width:0}
+.day.c0{border-left:0}
+.day.out{background:var(--bg)}
+.day.out .dn{opacity:.45}
+.day.click{cursor:pointer}
+.day.click:hover{background:color-mix(in srgb,var(--accent) 7%,transparent)}
+.dn{font-family:var(--f-mono);font-size:12px;font-variant-numeric:tabular-nums;display:inline-block;padding:1px 6px;border-radius:99px}
+.day.today .dn{background:var(--accent);color:var(--accent-ink);font-weight:600}
+.tbar{position:relative;z-index:1;margin:0 4px;border:0;border-radius:4px;font-size:12px;font-weight:600;padding:0 7px;text-align:left;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:pointer;line-height:22px;min-width:0}
+.tbar.cl{border-top-left-radius:0;border-bottom-left-radius:0;margin-left:0}
+.tbar.cr{border-top-right-radius:0;border-bottom-right-radius:0;margin-right:0}
+.tbar.s-plan,.sw.s-plan{background:var(--surface-2);box-shadow:inset 0 0 0 1px var(--muted);color:var(--ink)}
+.tbar.s-reg,.sw.s-reg{background:var(--ct);color:var(--on-strong)}
+.tbar.s-live,.sw.s-live{background:var(--good);color:var(--on-strong)}
+.tbar.s-done,.sw.s-done{background:var(--surface-2);color:var(--muted)}
+.evs{position:relative;z-index:1;display:flex;flex-direction:column;gap:2px;padding:0 4px 5px;min-width:0}
+.ev{border:0;font-size:11px;font-weight:600;text-align:left;padding:1px 5px;border-radius:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:pointer;min-width:0}
+.ev.reg,.sw.ev-reg{color:var(--warn);background:color-mix(in srgb,var(--warn) 16%,transparent)}
+.ev.match,.sw.ev-match{color:var(--ct);background:color-mix(in srgb,var(--ct) 14%,transparent)}
+.legend{display:flex;flex-wrap:wrap;gap:6px 16px;font-size:12px;color:var(--muted);margin-top:-8px}
+.legend span{display:inline-flex;align-items:center;gap:6px}
+.sw{display:inline-block;width:14px;height:10px;border-radius:3px}
+.sw.ev-reg{background:var(--warn)} .sw.ev-match{background:var(--ct)}
+.modal.wide{max-width:1060px}
+.sub{display:contents}
+.stage{font-family:var(--f-mono);font-size:12px;text-transform:uppercase;letter-spacing:.1em;font-weight:600;padding:4px 0 2px;border-bottom:2px solid currentColor}
+.stage.wide{grid-column:1/-1;margin-top:6px}
+.s1{color:var(--accent)} .s2{color:var(--ct)} .s3{color:var(--good)}
+.rgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:8px}
+.br-list{display:flex;flex-direction:column;gap:12px;counter-reset:br;margin-bottom:8px}
+.br-ed{counter-increment:br;border:1px solid var(--line);border-radius:8px;padding:12px;background:var(--bg);display:flex;flex-direction:column;gap:10px}
+.br-head{display:flex;justify-content:space-between;align-items:center}
+.br-num::after{content:" " counter(br)}
+.br-cols{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.3fr);gap:16px}
+.br-col{display:flex;flex-direction:column;gap:10px;min-width:0}
+.br-ed .field input,.br-ed .field textarea{background:var(--surface)}
+.zones{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.zone{border:1px solid var(--line);background:var(--surface);border-radius:4px;padding:3px 9px;font-size:13px;font-weight:600;cursor:pointer;color:var(--muted)}
+.zone[aria-pressed="true"]{background:var(--ct);border-color:var(--ct);color:var(--on-strong)}
+.zone.static{cursor:default;color:var(--ink);background:color-mix(in srgb,var(--ct) 14%,transparent);border-color:transparent;font-size:12px;padding:2px 7px}
+.zone.static.on{background:var(--ct);color:var(--on-strong)}
+.zfilter{display:flex;flex-wrap:wrap;gap:8px;align-items:center;border:1px dashed var(--line);border-radius:8px;padding:10px 12px}
+.hitline{color:var(--good)!important;font-weight:600}
+.tree{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr) minmax(0,1.25fr);gap:10px 22px;align-items:stretch}
+.th{font-family:var(--f-mono);font-size:12px;text-transform:uppercase;letter-spacing:.1em;font-weight:600;border-bottom:2px solid currentColor;padding-bottom:4px}
+.node{position:relative;border:1px solid var(--line);border-radius:8px;padding:10px 12px;background:var(--bg);display:flex;flex-direction:column;gap:8px;min-width:0}
+.node.def{border-top:3px solid var(--accent);align-self:start;position:sticky;top:0}
+.node.cond{border-left:3px solid var(--ct)}
+.node.fin{border-left:3px solid var(--good)}
+.node.cond::before,.node.fin::before{content:"";position:absolute;left:-23px;top:22px;width:20px;border-top:2px solid var(--line)}
+.node.hit{box-shadow:0 0 0 2px var(--good)}
+.node.dim{opacity:.45}
+.nh{font-weight:700;display:flex;justify-content:space-between;gap:8px;align-items:baseline}
+.until{font-size:12px;color:var(--accent)}
+.small{font-size:13px;margin:0}
+.rmini{display:flex;flex-direction:column;gap:4px;font-size:13px}
+.rmini div{display:grid;grid-template-columns:62px minmax(0,1fr);gap:8px}
+.rmini b{font-family:var(--f-mono);font-size:12px;color:var(--accent)}
+.rmini span{overflow-wrap:anywhere}
+.rv{position:fixed;inset:0;z-index:20;background:var(--surface);color:var(--ink);display:flex;flex-direction:column;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);outline:none}
+.rv-head{display:flex;align-items:center;gap:14px;padding-block:12px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));border-bottom:1px solid var(--line)}
+.rv-titles{flex:1;min-width:0;display:flex;flex-direction:column;gap:4px}
+.rv-name{margin:0;font-size:18px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rv-time{padding-block:14px 12px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));border-bottom:1px solid var(--line);background:var(--bg)}
+.tl{max-width:1000px;margin:0 auto;display:flex;flex-direction:column;gap:8px}
+.tl-labels{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}
+.tl-lab{background:none;border:0;padding:0;text-align:left;cursor:pointer;display:flex;flex-direction:column;gap:1px;min-width:0;opacity:.55;transition:opacity .25s}
+.tl-lab[aria-selected="true"]{opacity:1}
+.tl-n{font-family:var(--f-mono);font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.08em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tl-t{font-size:12px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tl-bars{position:relative;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;padding-block:6px;cursor:pointer;touch-action:none;user-select:none}
+.tl-bar{height:8px;border-radius:4px;background:var(--surface-2);overflow:hidden}
+.tl-fill{height:100%;background:currentColor;transform-origin:left;transform:scaleX(0)}
+.tl-knob{position:absolute;top:2px;width:16px;height:16px;border-radius:50%;background:var(--ink);border:3px solid var(--bg);box-shadow:0 1px 4px rgba(0,0,0,.3);pointer-events:none;left:calc(16.66% - 8px)}
+.rv-track{flex:1;min-height:0;display:flex;overflow-x:auto;overflow-y:hidden;scroll-snap-type:x mandatory;scrollbar-width:none;overscroll-behavior:contain}
+.rv-track::-webkit-scrollbar{display:none}
+.rv-page{flex:0 0 100%;min-width:0;scroll-snap-align:start;scroll-snap-stop:always;overflow-y:auto;padding-block:28px 56px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.rv-in{max-width:1000px;margin:0 auto;display:flex;flex-direction:column;gap:20px}
+.rv-in > *, .role-grid > *, .br-pick > *{transition:opacity .4s ease, transform .4s cubic-bezier(.2,.8,.2,1);transition-delay:calc(var(--i,0) * 45ms)}
+.rv-page:not(.on) .rv-in > *, .rv-page:not(.on) .role-grid > *, .rv-page:not(.on) .br-pick > *{opacity:0;transform:translateY(14px)}
+.rv-kick{font-family:var(--f-mono);font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.12em}
+.rv-lead{font-size:18px;margin:0;max-width:65ch}
+.rv-title{font-family:var(--f-display);font-weight:400;font-size:30px;margin:0;text-wrap:balance}
+.role-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px}
+.role-card{border:1px solid var(--line);border-radius:8px;padding:14px 16px;background:var(--bg);display:flex;flex-direction:column;gap:6px;min-width:0}
+.role-card b{font-family:var(--f-mono);font-size:13px;color:var(--accent);text-transform:uppercase;letter-spacing:.06em}
+.role-card .prose{font-size:15px}
+.rv-block h3{font-family:var(--f-mono);font-size:12px;text-transform:uppercase;letter-spacing:.12em;color:var(--muted);margin:0 0 8px;font-weight:600}
+.rv-next{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;border-top:1px solid var(--line);padding-top:16px}
+.br-pick{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:12px}
+.br-card{border:1px solid var(--line);border-left:3px solid var(--ct);border-radius:8px;background:var(--bg);padding:14px 16px;text-align:left;cursor:pointer;display:flex;flex-direction:column;gap:10px;min-width:0}
+.br-card:hover{border-color:var(--muted);border-left-color:var(--ct)}
+.br-card[aria-pressed="true"]{box-shadow:0 0 0 2px var(--ct)}
+.br-card-n{font-family:var(--f-mono);font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.1em}
+.br-card-go{font-weight:700;color:var(--good)}
+.br-switch{flex-wrap:wrap;align-self:flex-start}
+details.past>summary{cursor:pointer;color:var(--muted);font-weight:600;margin-bottom:10px}
+
+.filters{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:6px;overflow:hidden;background:var(--surface)}
+.seg button{border:0;background:none;padding:6px 12px;cursor:pointer;font-weight:600;font-size:13px;color:var(--muted)}
+.seg button[aria-pressed="true"]{background:var(--ink);color:var(--bg)}
+.maps{display:flex;flex-wrap:wrap;gap:6px}
+.mapbtn{border:1px solid var(--line);background:var(--surface);border-radius:99px;padding:4px 12px;cursor:pointer;font-size:13px;font-weight:600}
+.mapbtn[aria-pressed="true"]{border-color:var(--accent);color:var(--accent);box-shadow:inset 0 0 0 1px var(--accent)}
+.search{flex:1 1 200px;min-width:0;padding:8px 12px;border:1px solid var(--line);border-radius:6px;background:var(--surface)}
+.filters select{padding:7px 10px;border:1px solid var(--line);border-radius:6px;background:var(--surface)}
+
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:12px}
+.scard{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:14px;cursor:pointer;text-align:left;display:flex;flex-direction:column;gap:8px;min-width:0}
+.scard:hover{border-color:var(--muted)}
+.scard .row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.scard .map{font-family:var(--f-mono);font-size:12px;text-transform:uppercase;letter-spacing:.1em;color:var(--muted)}
+.scard h3{margin:0;font-size:16px}
+.scard p{margin:0;color:var(--muted);font-size:13px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.scard .foot{margin-top:auto;display:flex;justify-content:space-between;gap:8px;align-items:center;flex-wrap:wrap}
+.tags{display:flex;gap:4px;flex-wrap:wrap}
+.tag{font-size:12px;color:var(--muted)}
+
+.empty{border:1px dashed var(--line);border-radius:8px;padding:32px 20px;text-align:center;color:var(--muted);display:flex;flex-direction:column;gap:12px;align-items:center}
+.empty b{color:var(--ink);font-size:16px}
+
+.overlay{position:fixed;inset:0;z-index:20;background:rgba(10,14,20,.5);display:flex;justify-content:center;align-items:flex-start;overflow-y:auto;padding:max(24px,env(safe-area-inset-top,0px)) max(12px,env(safe-area-inset-right,0px)) 24px max(12px,env(safe-area-inset-left,0px))}
+.modal{background:var(--surface);color:var(--ink);border-radius:10px;box-shadow:var(--shadow);width:100%;max-width:760px;display:flex;flex-direction:column}
+.m-head{display:flex;align-items:flex-start;gap:12px;padding:18px 20px 12px;border-bottom:1px solid var(--line)}
+.m-head h2{margin:0;font-size:20px;flex:1;min-width:0;text-wrap:balance}
+.icon-btn{border:0;background:none;font-size:24px;line-height:1;cursor:pointer;color:var(--muted);padding:0 4px}
+.m-body{padding:18px 20px;display:flex;flex-direction:column;gap:18px;min-width:0}
+.m-foot{display:flex;flex-wrap:wrap;gap:8px;justify-content:flex-end;padding:12px 20px 18px;border-top:1px solid var(--line)}
+.m-foot .left{margin-right:auto}
+
+.form{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px 14px}
+.field{display:flex;flex-direction:column;gap:4px;min-width:0}
+.field.wide{grid-column:1/-1}
+.lbl{font-size:12px;font-weight:600;color:var(--muted);letter-spacing:.03em}
+.field input,.field select,.field textarea{padding:8px 10px;border:1px solid var(--line);border-radius:6px;background:var(--bg);width:100%;min-width:0}
+.field textarea{resize:vertical}
+.fset{grid-column:1/-1;font-family:var(--f-mono);font-size:12px;text-transform:uppercase;letter-spacing:.12em;color:var(--muted);border-top:1px solid var(--line);padding-top:12px;margin-top:4px}
+.lu-row{display:grid;grid-template-columns:120px minmax(0,1fr) auto;gap:10px;align-items:start;border:1px solid var(--line);border-radius:6px;padding:8px}
+.lu-line{display:grid;grid-template-columns:120px 190px minmax(0,1fr);gap:6px}
+.form.ct .lu-line{grid-template-columns:120px minmax(0,1fr)}
+.form.ct .lu-phase{display:none}
+.lu-phase{padding:6px 8px;border:1px solid var(--line);border-radius:6px;background:var(--bg);min-width:0}
+.lu-type{padding:6px 8px;border:1px solid var(--line);border-radius:6px;background:var(--bg)}
+.lu-row:focus-within .lu-prev{outline:1px dashed var(--muted)}
+.fp{grid-column:1/-1;display:flex;flex-direction:column;gap:8px;border-top:1px solid var(--line);padding-top:8px}
+.fp video{width:100%;max-width:640px;max-height:360px;border-radius:6px;background:#000}
+.fp-ctl{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.fp-ctl input[type=range]{flex:1 1 200px;min-width:0}
+.nade{font-family:var(--f-mono);font-size:11px;font-weight:600;padding:1px 6px;border-radius:3px;white-space:nowrap}
+.n-smoke{background:var(--surface-2);color:var(--ink)}
+.n-flash{background:color-mix(in srgb,#e8c547 35%,transparent);color:var(--ink)}
+.n-molotov{background:color-mix(in srgb,var(--t) 25%,transparent);color:var(--t)}
+.n-he{background:color-mix(in srgb,var(--bad) 18%,transparent);color:var(--bad)}
+.n-decoy{background:color-mix(in srgb,var(--ct) 15%,transparent);color:var(--ct)}
+.lu-top{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+.noimg{aspect-ratio:16/9;display:grid;place-items:center;background:var(--surface-2);color:var(--muted);font-size:12px}
+.lu-prev{width:120px;aspect-ratio:16/9;border-radius:4px;background:var(--surface-2);overflow:hidden;display:grid;place-items:center;color:var(--muted);font-size:11px}
+.lu-prev img{width:100%;height:100%;object-fit:cover}
+.lu-fields{display:flex;flex-direction:column;gap:6px;min-width:0}
+.lu-fields input{padding:6px 8px;border:1px solid var(--line);border-radius:6px;background:var(--bg);width:100%;min-width:0}
+.lu-actions{display:flex;flex-direction:column;gap:6px}
+.lu-list{display:flex;flex-direction:column;gap:8px}
+
+.sec h3{font-family:var(--f-mono);font-size:12px;text-transform:uppercase;letter-spacing:.12em;color:var(--muted);margin:0 0 8px;font-weight:600}
+.kv{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:10px 16px}
+.kv div{min-width:0}
+.kv dt{font-size:12px;color:var(--muted)} .kv dd{margin:0;font-weight:600;overflow-wrap:anywhere}
+.prose{white-space:pre-wrap;overflow-wrap:anywhere;margin:0}
+.muted{color:var(--muted)}
+.mono{font-family:var(--f-mono);font-variant-numeric:tabular-nums}
+.pre{font-family:var(--f-mono);font-size:13px;white-space:pre;overflow-x:auto;background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:12px;margin:0}
+.matches{display:flex;flex-direction:column;gap:8px}
+.mrow{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,1fr) auto;gap:10px;align-items:center;border:1px solid var(--line);border-radius:6px;padding:10px 12px}
+.mrow .opp{font-weight:700;background:none;border:0;padding:0;cursor:pointer;text-align:left;text-decoration:underline;text-decoration-color:var(--line);text-underline-offset:3px}
+.mrow .r{display:flex;gap:6px;align-items:center;justify-content:flex-end;flex-wrap:wrap}
+.roles{display:flex;flex-direction:column;border:1px solid var(--line);border-radius:6px;overflow:hidden}
+.roles div{display:grid;grid-template-columns:96px minmax(0,1fr);gap:12px;padding:10px 12px;border-top:1px solid var(--line)}
+.roles div:first-child{border-top:0}
+.roles b{font-family:var(--f-mono);font-size:13px;color:var(--accent)}
+.lineups{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px}
+.lineup{border:1px solid var(--line);border-radius:6px;overflow:hidden;background:var(--bg)}
+.lineup img{display:block;width:100%;aspect-ratio:16/9;object-fit:cover;max-width:100%;background:var(--surface-2)}
+.lineup > div:not(.noimg){padding:8px 10px;font-size:13px;display:flex;flex-direction:column;gap:2px}
+
+.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(20px + env(safe-area-inset-bottom,0px));z-index:30;background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:6px;font-weight:600;box-shadow:var(--shadow);max-width:calc(100vw - 32px)}
+
+@media (max-width:640px){
+  .tabs{margin-left:0;width:100%}
+  .tab{padding:8px 8px 10px}
+  .brand span{display:none}
+  .tcard{grid-template-columns:60px minmax(0,1fr)}
+  .tright{grid-column:2;text-align:left}
+  .tright b{display:inline;margin-right:6px}
+  .week{min-height:76px}
+  .day{padding:3px 2px}
+  .dn{padding:1px 4px;font-size:11px}
+  .tbar{font-size:10px;padding:0 3px;margin:0 2px;line-height:18px}
+  .ev{font-size:9.5px;padding:0 2px}
+  .evs{padding:0 2px 3px}
+  .cal-dow div{padding:5px 4px;letter-spacing:.04em}
+  .form{grid-template-columns:minmax(0,1fr)}
+  .mrow{grid-template-columns:minmax(0,1fr)}
+  .mrow .r{justify-content:flex-start}
+  .roles div{grid-template-columns:minmax(0,1fr);gap:2px}
+  .br-cols{grid-template-columns:minmax(0,1fr)}
+  .lu-row{grid-template-columns:minmax(0,1fr)}
+  .lu-line,.form.ct .lu-line{grid-template-columns:minmax(0,1fr)}
+  .lu-actions{flex-direction:row;flex-wrap:wrap}
+  .tree{grid-template-columns:minmax(0,1fr)}
+  .tree>*{grid-column:1!important;grid-row:auto!important}
+  .tree .th{display:none}
+  .node.def{position:static}
+  .node.cond{margin-top:8px}
+  .node.fin{margin-left:18px}
+  .node.cond::before{display:none}
+  .node.fin::before{left:-14px;top:-12px;width:10px;height:30px;border-top:0;border-left:2px solid var(--line);border-bottom:2px solid var(--line)}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important} .rv-track{scroll-behavior:auto}}
+@media (max-width:640px){ .rv-title{font-size:24px} .rv-lead{font-size:16px} .tl-t{display:none} .rv-head .chips{display:none} }
+.login{max-width:380px;margin:12vh auto 0;display:flex;flex-direction:column;gap:12px;background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:24px}
+.login-t{font-family:var(--f-display);font-weight:400;font-size:24px}
+.login input{padding:10px 12px;border:1px solid var(--line);border-radius:6px;background:var(--bg);font-size:16px}
+.login-err{color:var(--bad);font-weight:600}
+.banner.import{display:flex;gap:12px;align-items:center;flex-wrap:wrap;justify-content:space-between;border-left-color:var(--ct)}
+.logout{margin-left:6px}
+html,body{margin:0}
+img{max-width:100%}
+</style>
+</head>
+<body>
+
+<header class="top">
+  <div class="top-in">
+    <div class="brand"><b>ШТАБ</b><span>календарь · стратбук · соперники</span><button class="btn ghost sm logout" id="logout" type="button" hidden>Выйти</button></div>
+    <nav class="tabs" role="tablist" id="tabs"></nav>
+  </div>
+</header>
+<main id="main">
+  <div class="empty"><b>Загружаю данные команды…</b></div>
+</main>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
+<script>
+const DEFAULT_MAPS = ["Ancient","Anubis","Dust2","Inferno","Mirage","Nuke","Train"];
+const DEFAULT_ZONES = {
+  Ancient:["Mid","Cave","Donut","A Main","Elbow","B Ramp","B Lane","Temple","A Site","B Site"],
+  Anubis:["Mid","Connector","Canal","A Main","B Main","Bridge","Water","Street","A Site","B Site"],
+  Dust2:["Long","Pit","Short","Mid","Xbox","Lower Tunnels","Upper Tunnels","B Doors","A Site","B Site"],
+  Inferno:["Banana","Car","Second Mid","Apps","Balcony","Arch","Library","Pit","Short","Long","A Site","B Site"],
+  Mirage:["Palace","Ramp","Tetris","Top Mid","Connector","Window","Short","Underpass","Apps","A Site","B Site"],
+  Nuke:["Outside","Lobby","Ramp","Hut","Squeaky","Heaven","Secret","Mini","A Site","B Site"],
+  Train:["Ivy","T Connector","Popdog","Lower","Upper","B Halls","Ladder","A Site","B Site"]};
+const TSTATUS = {planned:["Планируем","s-plan"],registered:["Заявились","s-reg"],playing:["Играем","s-live"],done:["Завершён","s-done"]};
+const FORM_STAGES = {rebuild:"Обкатка состава",building:"Набираем форму",peak:"Пик формы"};
+const ROUND_TYPES = {pistol:"Пистолетка",eco:"Эко",force:"Форс",full:"Фулл-бай"};
+const ROLES = [["igl","IGL"],["awp","AWP"],["entry","Энтри"],["lurker","Люркер"],["support","Саппорт"]];
+const SSTATUS = {ready:"Отработана",wip:"В работе"};
+const OUTCOME = {"":"Ещё не играли",win:"Победа",loss:"Поражение"};
+
+const state = {tab:"calendar", tournaments:[], strats:[], opponents:[], maps:DEFAULT_MAPS.slice(),
+  db:null, assets:null, canWrite:true, loaded:{t:false,s:false,o:false}, offline:false,
+  sf:{q:"",map:"",side:"",rt:"",st:"",zones:[]}, zones:{}, oq:"", modal:null,
+  cal:{y:new Date().getFullYear(), m:new Date().getMonth(), mode:"month"}};
+
+try{ const t = localStorage.getItem("shtab.tab"); if(t) state.tab = t; }catch(e){}
+try{ const cm = localStorage.getItem("shtab.calmode"); if(cm==="list"||cm==="month") state.cal.mode = cm; }catch(e){}
+if(["calendar","strats","opponents"].includes(location.hash.slice(1))) state.tab = location.hash.slice(1);
+
+/* ---------- helpers ---------- */
+function h(tag, attrs, ...kids){
+  const el = document.createElement(tag);
+  for(const [k,v] of Object.entries(attrs||{})){
+    if(v==null || v===false) continue;
+    if(k==="class") el.className = v;
+    else if(k.startsWith("on") && typeof v==="function") el.addEventListener(k.slice(2), v);
+    else el.setAttribute(k, v===true ? "" : v);
+  }
+  for(const k of kids.flat(Infinity)){ if(k==null || k===false) continue; el.append(k instanceof Node ? k : document.createTextNode(String(k))); }
+  return el;
+}
+const inp = (id,val,type="text",ph="") => { const e=h("input",{id,type,placeholder:ph}); e.value = val ?? ""; return e; };
+const ta = (id,val,ph="",rows=3) => { const e=h("textarea",{id,rows,placeholder:ph}); e.value = val ?? ""; return e; };
+const sel = (id,val,obj) => { const e=h("select",{id}, Object.entries(obj).map(([v,l])=>h("option",{value:v},l))); e.value = val ?? Object.keys(obj)[0]; return e; };
+const field = (label,input,wide) => h("label",{class:"field"+(wide?" wide":"")}, h("span",{class:"lbl"},label), input);
+const val = id => { const e=document.getElementById(id); return e ? e.value.trim() : ""; };
+const fset = t => h("div",{class:"fset"},t);
+
+const MON = ["янв","фев","мар","апр","мая","июн","июл","авг","сен","окт","ноя","дек"];
+const parseD = s => { if(!s) return null; const d = new Date(s.length<=10 ? s+"T00:00:00" : s); return isNaN(d) ? null : d; };
+const fmtD = s => { const d=parseD(s); return d ? `${d.getDate()} ${MON[d.getMonth()]}` : ""; };
+const fmtDT = s => { const d=parseD(s); if(!d) return ""; const t = s.length>10 ? " "+String(d.getHours()).padStart(2,"0")+":"+String(d.getMinutes()).padStart(2,"0") : ""; return fmtD(s)+t; };
+const monthTitle = d => d.toLocaleDateString("ru-RU",{month:"long",year:"numeric"}).replace(/^./,c=>c.toUpperCase()).replace(" г.","");
+const daysTo = s => { const d=parseD(s); if(!d) return null; const now=new Date(); now.setHours(0,0,0,0); return Math.round((d-now)/864e5); };
+const plural = (n,a,b,c) => { const m=n%10, k=n%100; return m===1&&k!==11 ? a : (m>=2&&m<=4&&(k<10||k>=20) ? b : c); };
+const safeUrl = u => /^https?:\/\//i.test(u||"") ? u : null;
+const ext = (u,text) => safeUrl(u) ? h("a",{href:u,target:"_blank",rel:"noopener"},text||u) : null;
+
+let toastT;
+function toast(msg){ document.querySelector(".toast")?.remove(); clearTimeout(toastT); const t=h("div",{class:"toast",role:"status"},msg); document.body.append(t); toastT=setTimeout(()=>t.remove(),3200); }
+
+function dbErr(e){
+  const c = e && e.code;
+  if(c==="invalid_argument"){ state.canWrite=false; render(); toast("Нет доступа. Войдите заново с паролем команды."); }
+  else if(c==="quota_exceeded") toast("Хранилище заполнено. Удалите старые записи и попробуйте снова.");
+  else if(c==="resource_exhausted") toast("Слишком много действий подряд. Подождите пару секунд.");
+  else toast("Не получилось сохранить. Проверьте соединение и попробуйте ещё раз.");
+}
+async function put(col,id,data){
+  if(!state.db){ toast("Хранилище недоступно в этом просмотре."); return false; }
+  try{ await state.db.collection(col).doc(id).set({...data, updatedAt:new Date().toISOString()}); return true; }
+  catch(e){ if(e && e.code==="unavailable"){ try{ await new Promise(r=>setTimeout(r,600+Math.random()*600)); await state.db.collection(col).doc(id).set({...data, updatedAt:new Date().toISOString()}); return true; }catch(e2){ dbErr(e2); return false; } } dbErr(e); return false; }
+}
+async function del(col,id){ if(!state.db) return false; try{ await state.db.collection(col).doc(id).delete(); return true; }catch(e){ dbErr(e); return false; } }
+const newId = col => state.db ? state.db.collection(col).doc().id : String(Date.now());
+
+function confirmBtn(label, onConfirm){
+  let armed=false, t;
+  const b = h("button",{type:"button",class:"btn danger left",onclick:()=>{
+    if(!armed){ armed=true; b.classList.add("armed"); b.textContent="Точно удалить?"; t=setTimeout(()=>{armed=false;b.classList.remove("armed");b.textContent=label;},4000); return; }
+    clearTimeout(t); onConfirm();
+  }}, label);
+  return b;
+}
+
+/* ---------- modal ---------- */
+function closeModal(){ document.querySelectorAll(".overlay,.rv").forEach(x=>x.remove()); document.body.classList.remove("locked"); state.modal=null; }
+function openModal(title, body, actions, kind="form", rerender){
+  closeModal();
+  const ov = h("div",{class:"overlay",onclick:e=>{ if(e.target===ov) closeModal(); }},
+    h("div",{class:"modal",role:"dialog","aria-modal":"true","aria-label":title},
+      h("header",{class:"m-head"}, h("h2",{},title), h("button",{type:"button",class:"icon-btn",onclick:closeModal,"aria-label":"Закрыть"},"×")),
+      h("div",{class:"m-body"}, body),
+      actions && actions.length ? h("footer",{class:"m-foot"}, actions) : null));
+  document.body.append(ov); document.body.classList.add("locked");
+  state.modal = {kind, rerender};
+  const first = ov.querySelector("input,select,textarea"); if(first && kind==="form") first.focus();
+}
+document.addEventListener("keydown", e=>{ if(e.key==="Escape" && state.modal) closeModal(); });
+function refreshDetail(){ if(state.modal && (state.modal.kind==="detail"||state.modal.kind==="round") && state.modal.rerender) state.modal.rerender(); }
+
+/* ---------- tabs ---------- */
+function renderTabs(){
+  const tabs = [["calendar","Календарь",state.tournaments.length],["strats","Стратбук",state.strats.length],["opponents","Соперники",state.opponents.length]];
+  document.getElementById("tabs").replaceChildren(...tabs.map(([k,l,n])=>h("button",{class:"tab",role:"tab","aria-selected":String(state.tab===k),onclick:()=>{state.tab=k; try{localStorage.setItem("shtab.tab",k);}catch(e){} render(); window.scrollTo(0,0);}}, l, h("span",{class:"n"},n))));
+}
+
+function render(){
+  renderTabs();
+  const m = document.getElementById("main");
+  const kids = [];
+  if(state.offline) kids.push(h("div",{class:"banner"},"Общее хранилище недоступно в этом просмотре. Откройте страницу на claude.ai, войдя в аккаунт, чтобы видеть и добавлять данные команды."));
+  else if(!state.canWrite) kids.push(h("div",{class:"banner"},"У вас доступ только на просмотр. Чтобы добавлять турниры и страты, попросите владельца выдать доступ «Участник»."));
+  if(state.tab==="strats") kids.push(...viewStrats());
+  else if(state.tab==="opponents") kids.push(...viewOpponents());
+  else kids.push(...viewCalendar());
+  const act = document.activeElement, actId = act && m.contains(act) ? act.id : null, pos = actId && act.selectionStart;
+  m.replaceChildren(...kids);
+  if(actId){ const n=document.getElementById(actId); if(n){ n.focus(); try{ if(pos!=null) n.setSelectionRange(pos,pos); }catch(e){} } }
+}
+const addBtn = (label,fn) => state.canWrite && !state.offline ? h("button",{class:"btn primary",onclick:fn},"+ "+label) : null;
+const loading = () => h("div",{class:"empty"},h("b",{},"Загружаю…"));
+
+/* ---------- calendar ---------- */
+function matchRecord(list){ let w=0,l=0; for(const m of list){ if(m.outcome==="win") w++; else if(m.outcome==="loss") l++; } return {w,l}; }
+function regChip(t){
+  if(!t.regDeadline || t.status!=="planned") return null;
+  const n = daysTo(t.regDeadline);
+  if(n<0) return h("span",{class:"chip bad"},"Регистрация закрыта");
+  if(n===0) return h("span",{class:"chip warn"},"Дедлайн регистрации сегодня");
+  if(n<=7) return h("span",{class:"chip warn"},`До дедлайна ${n} ${plural(n,"день","дня","дней")}`);
+  return h("span",{class:"chip"},"Регистрация до "+fmtD(t.regDeadline));
+}
+function tCard(t){
+  const d = parseD(t.start), e = parseD(t.end);
+  const ms = t.matches||[]; const rec = matchRecord(ms);
+  const range = d ? (e && (e-d)>0 ? (d.getMonth()===e.getMonth() ? `${d.getDate()}–${e.getDate()}` : `${d.getDate()}–${e.getDate()}`) : String(d.getDate())) : "—";
+  const st = TSTATUS[t.status]||TSTATUS.planned;
+  return h("button",{class:"tcard",onclick:()=>openTournament(t.id)},
+    h("div",{class:"dblock"}, h("b",{},range), h("small",{}, d ? (e && e.getMonth()!==d.getMonth() ? MON[d.getMonth()]+"–"+MON[e.getMonth()] : MON[d.getMonth()]) : "дата?")),
+    h("div",{style:"min-width:0"},
+      h("p",{class:"tname"},t.name||"Без названия"),
+      h("div",{class:"meta"},[t.mode, t.format, t.prize].filter(Boolean).join(" · ") || "Формат не указан"),
+      h("div",{class:"chips"}, h("span",{class:"chip "+st[1]},st[0]), t.formStage ? h("span",{class:"chip form"},FORM_STAGES[t.formStage]) : null, regChip(t), t.status==="done" && t.place ? h("span",{class:"chip"},"Место: "+t.place) : null)),
+    h("div",{class:"tright"}, ms.length ? [h("b",{},`${rec.w}–${rec.l}`), `${ms.length} ${plural(ms.length,"соперник","соперника","соперников")}`] : "соперники не добавлены"));
+}
+const ymd = d => d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");
+function viewCalendar(){
+  const c = state.cal;
+  const modeSeg = h("div",{class:"seg",role:"group","aria-label":"Вид календаря"}, [["month","Месяц"],["list","Список"]].map(([v,l])=>h("button",{"aria-pressed":String(c.mode===v),onclick:()=>{c.mode=v; try{localStorage.setItem("shtab.calmode",v);}catch(e){} render();}},l)));
+  const out = [h("div",{class:"bar"}, h("h1",{},"Турнирный календарь"), modeSeg, addBtn("Турнир",()=>tournamentForm()))];
+  if(!state.loaded.t && !state.offline) return [...out, loading()];
+  return c.mode==="list" ? [...out, ...listView()] : [...out, ...monthView()];
+}
+function monthView(){
+  const c = state.cal, y = c.y, m = c.m;
+  const first = new Date(y,m,1), last = new Date(y,m+1,0);
+  const off = (first.getDay()+6)%7;
+  const weeks = Math.ceil((off+last.getDate())/7);
+  const today = ymd(new Date());
+  const can = state.canWrite && !state.offline;
+  const spans = state.tournaments.filter(t=>t.start).map(t=>({t, s:t.start.slice(0,10), e:(t.end && t.end>=t.start ? t.end : t.start).slice(0,10)}));
+  const ev = {}; const add=(k,o)=>{ (ev[k] ||= []).push(o); };
+  for(const t of state.tournaments){
+    if(t.regDeadline && t.status==="planned") add(t.regDeadline.slice(0,10),{kind:"reg",t,label:"Рег.: "+t.name});
+    for(const mt of (t.matches||[])) if(mt.date) add(mt.date.slice(0,10),{kind:"match",t,label:(mt.date.length>10?mt.date.slice(11,16)+" ":"")+"vs "+oppName(mt)});
+  }
+  const go = d => { const n=new Date(c.y,c.m+d,1); c.y=n.getFullYear(); c.m=n.getMonth(); render(); };
+  const nav = h("div",{class:"calnav"},
+    h("button",{class:"btn sm",onclick:()=>go(-1),"aria-label":"Предыдущий месяц"},"‹"),
+    h("h2",{},monthTitle(first)),
+    h("button",{class:"btn sm",onclick:()=>go(1),"aria-label":"Следующий месяц"},"›"),
+    (y!==new Date().getFullYear()||m!==new Date().getMonth()) ? h("button",{class:"btn ghost sm",onclick:()=>{const n=new Date(); c.y=n.getFullYear(); c.m=n.getMonth(); render();}},"Сегодня") : null);
+  const grid = h("div",{class:"cal"});
+  for(let w=0; w<weeks; w++){
+    const days = Array.from({length:7},(_,i)=>new Date(y,m,1-off+w*7+i));
+    const k0 = ymd(days[0]), k6 = ymd(days[6]);
+    const segs = spans.filter(x=>x.s<=k6 && x.e>=k0).sort((a,b)=>a.s.localeCompare(b.s)||b.e.localeCompare(a.e)).map(x=>({...x,
+      sc: x.s<k0 ? 0 : days.findIndex(d=>ymd(d)===x.s), ec: x.e>k6 ? 6 : days.findIndex(d=>ymd(d)===x.e), cl:x.s<k0, cr:x.e>k6}));
+    const lanes=[];
+    for(const sg of segs){ let l=0; while(lanes[l] && lanes[l].some(o=>!(sg.ec<o.sc||sg.sc>o.ec))) l++; (lanes[l] ||= []).push(sg); sg.lane=l; }
+    const L = lanes.length;
+    const week = h("div",{class:"week",style:`grid-template-rows:28px ${L?`repeat(${L},22px) `:""}minmax(20px,auto)`});
+    days.forEach((d,i)=>{
+      const k = ymd(d);
+      week.append(h("div",{class:"day"+(i===0?" c0":"")+(d.getMonth()!==m?" out":"")+(k===today?" today":"")+(can?" click":""),style:`grid-column:${i+1};grid-row:1/-1`,
+        title: can ? "Добавить турнир с "+fmtD(k) : null, onclick: can ? ()=>tournamentForm(null,{start:k}) : null}, h("span",{class:"dn"},d.getDate())));
+      const evs = ev[k];
+      if(evs) week.append(h("div",{class:"evs",style:`grid-column:${i+1};grid-row:${L+2}`}, evs.map(e=>h("button",{class:"ev "+e.kind,title:e.label+" ("+e.t.name+")",onclick:x=>{x.stopPropagation(); openTournament(e.t.id);}},e.label))));
+    });
+    for(const sg of segs){
+      const st = (TSTATUS[sg.t.status]||TSTATUS.planned)[1];
+      week.append(h("button",{class:`tbar ${st}`+(sg.cl?" cl":"")+(sg.cr?" cr":""),style:`grid-column:${sg.sc+1}/${sg.ec+2};grid-row:${sg.lane+2}`,title:sg.t.name,onclick:x=>{x.stopPropagation(); openTournament(sg.t.id);}}, sg.t.name));
+    }
+    grid.append(week);
+  }
+  const legend = h("div",{class:"legend"},
+    Object.values(TSTATUS).map(([l,cl])=>h("span",{},h("i",{class:"sw "+cl}),l)),
+    h("span",{},h("i",{class:"sw ev-reg"}),"Дедлайн регистрации"), h("span",{},h("i",{class:"sw ev-match"}),"Матч"));
+  const inMonth = spans.filter(x=>x.s<=ymd(last) && x.e>=ymd(first)).sort((a,b)=>a.s.localeCompare(b.s)).map(x=>x.t);
+  const undated = state.tournaments.filter(t=>!t.start).length;
+  const out = [nav, h("div",{class:"calwrap"}, h("div",{class:"cal-dow"}, ["Пн","Вт","Ср","Чт","Пт","Сб","Вс"].map(d=>h("div",{},d))), grid), legend];
+  if(!state.tournaments.length) out.push(h("div",{class:"empty"}, h("b",{},"Пока нет ни одного турнира"), h("span",{},can?"Нажмите на день в календаре или на кнопку ниже, чтобы добавить турнир.":"Турниры появятся здесь, когда их добавят."), addBtn("Добавить первый турнир",()=>tournamentForm())));
+  else if(inMonth.length) out.push(h("div",{class:"month"},"В этом месяце"), h("div",{class:"list"}, inMonth.map(tCard)));
+  else out.push(h("p",{class:"muted",style:"margin:0"},"В этом месяце турниров нет."));
+  if(undated) out.push(h("p",{class:"muted",style:"margin:0"},`Без даты: ${undated}. Они видны в режиме «Список».`));
+  return out;
+}
+function listView(){
+  const out = [];
+  const all = state.tournaments.slice().sort((a,b)=>(a.start||"9999").localeCompare(b.start||"9999"));
+  const upcoming = all.filter(t=>t.status!=="done"), past = all.filter(t=>t.status==="done").reverse();
+  if(!all.length){
+    out.push(h("div",{class:"empty"}, h("b",{},"Пока нет ни одного турнира"), h("span",{},"Добавьте турнир: даты, формат, дедлайн регистрации и форму, в которой команда к нему подходит."), addBtn("Добавить первый турнир",()=>tournamentForm())));
+    return out;
+  }
+  let lastM = null; const list = h("div",{class:"list"});
+  for(const t of upcoming){
+    const d = parseD(t.start); const key = d ? d.getFullYear()+"-"+d.getMonth() : "none";
+    if(key!==lastM){ list.append(h("div",{class:"month"}, d ? monthTitle(d) : "Без даты")); lastM=key; }
+    list.append(tCard(t));
+  }
+  if(upcoming.length) out.push(list); else out.push(h("div",{class:"empty"},h("b",{},"Предстоящих турниров нет"),addBtn("Добавить турнир",()=>tournamentForm())));
+  if(past.length) out.push(h("details",{class:"past"}, h("summary",{},`Завершённые (${past.length})`), h("div",{class:"list"}, past.map(tCard))));
+  return out;
+}
+
+function tournamentForm(t, preset){
+  const isNew = !t; t = t || {status:"planned",mode:"Онлайн",matches:[],...(preset||{})};
+  const body = h("div",{class:"form"},
+    field("Название", inp("t-name",t.name,"text","Например, ESEA Open, сезон 2"), true),
+    field("Начало", inp("t-start",t.start,"date")),
+    field("Окончание", inp("t-end",t.end,"date")),
+    field("Где", sel("t-mode",t.mode,{"Онлайн":"Онлайн","LAN":"LAN"})),
+    field("Статус", sel("t-status",t.status,Object.fromEntries(Object.entries(TSTATUS).map(([k,v])=>[k,v[0]])))),
+    field("Формат", inp("t-format",t.format,"text","Bo1 группы, Bo3 плей-офф"), true),
+    field("Призовые", inp("t-prize",t.prize,"text","$1 000")),
+    field("Дедлайн регистрации", inp("t-regd",t.regDeadline,"date")),
+    field("Ссылка на регистрацию", inp("t-regurl",t.regUrl,"url","https://"), true),
+    fset("С чем подходим к турниру"),
+    field("Этап подготовки", sel("t-stage",t.formStage||"",{"":"Не указан",...FORM_STAGES})),
+    h("div"),
+    field("Что отработано и что проседает", ta("t-formnote",t.formNote,"Например: отработали Mirage и Ancient, проседаем на CT Nuke, новый AWP ещё вливается",3), true),
+    fset("Сетка (по желанию)"),
+    field("Ссылка на сетку на сайте турнира", inp("t-burl",t.bracketUrl,"url","https://"), true),
+    field("Или заполните вручную", ta("t-btext",t.bracketText,"1/4  Мы — Team X\n1/2  Победитель — ?\nФинал …",4), true),
+    fset("Итог"),
+    field("Итоговое место", inp("t-place",t.place,"text","3–4")),
+    h("div"),
+    field("Заметки по итогам", ta("t-result",t.result,"Что получилось, что разбираем",3), true));
+  const save = h("button",{class:"btn primary",onclick:async()=>{
+    const name = val("t-name"); if(!name){ toast("Укажите название турнира."); document.getElementById("t-name").focus(); return; }
+    const id = t.id || newId("tournaments");
+    const doc = {name, start:val("t-start"), end:val("t-end"), mode:val("t-mode"), status:val("t-status"), format:val("t-format"), prize:val("t-prize"),
+      regDeadline:val("t-regd"), regUrl:val("t-regurl"), formStage:val("t-stage"), formNote:val("t-formnote"), bracketUrl:val("t-burl"), bracketText:document.getElementById("t-btext").value,
+      place:val("t-place"), result:val("t-result"), matches:t.matches||[]};
+    save.disabled=true;
+    if(await put("tournaments",id,doc)){ toast(isNew?"Турнир добавлен":"Сохранено"); state.tournaments = upsert(state.tournaments,{id,...doc}); openTournament(id); }
+    else save.disabled=false;
+  }}, isNew?"Добавить":"Сохранить");
+  openModal(isNew?"Новый турнир":"Турнир: правка", body, [h("button",{class:"btn ghost",onclick:()=> t.id?openTournament(t.id):closeModal()},"Отмена"), save]);
+}
+function upsert(arr,doc){ const i=arr.findIndex(x=>x.id===doc.id); const a=arr.slice(); if(i>=0) a[i]={...a[i],...doc}; else a.push(doc); return a; }
+
+function openTournament(id){
+  const build = () => {
+    const t = state.tournaments.find(x=>x.id===id);
+    if(!t){ closeModal(); return null; }
+    const st = TSTATUS[t.status]||TSTATUS.planned;
+    const ms = (t.matches||[]).slice().sort((a,b)=>(a.date||"9").localeCompare(b.date||"9"));
+    const dates = [fmtD(t.start), fmtD(t.end)].filter(Boolean).join(" – ");
+    const body = [
+      h("div",{class:"chips",style:"margin-top:0"}, h("span",{class:"chip "+st[1]},st[0]), regChip(t)),
+      h("dl",{class:"kv",style:"margin:0"},
+        [["Даты",dates||"не указаны"],["Где",t.mode],["Формат",t.format],["Призовые",t.prize],["Дедлайн регистрации",fmtD(t.regDeadline)]].filter(x=>x[1]).map(([k,v])=>h("div",{},h("dt",{},k),h("dd",{},v))),
+        safeUrl(t.regUrl) ? h("div",{},h("dt",{},"Регистрация"),h("dd",{},ext(t.regUrl,"Открыть"))) : null),
+      h("section",{class:"sec"}, h("h3",{},"С чем подходим"),
+        t.formStage||t.formNote ? [t.formStage ? h("div",{class:"chips",style:"margin:0 0 6px"},h("span",{class:"chip form"},FORM_STAGES[t.formStage])) : null, t.formNote ? h("p",{class:"prose"},t.formNote) : null]
+          : h("p",{class:"muted",style:"margin:0"},"Не заполнено. Отметьте этап подготовки и что сейчас проседает.")),
+      h("section",{class:"sec"}, h("div",{class:"bar",style:"margin-bottom:8px"}, h("h3",{style:"margin:0;margin-right:auto"},"Соперники и матчи"),
+          state.canWrite&&!state.offline ? h("button",{class:"btn sm",onclick:()=>matchForm(t)},"+ Соперник") : null),
+        ms.length ? h("div",{class:"matches"}, ms.map(m=>matchRow(t,m))) : h("p",{class:"muted",style:"margin:0"},"Пока никого. Добавьте команды, с которыми играете или можете сыграть.")),
+      h("section",{class:"sec"}, h("h3",{},"Сетка"),
+        safeUrl(t.bracketUrl)||t.bracketText ? [safeUrl(t.bracketUrl) ? h("p",{style:"margin:0 0 8px"},ext(t.bracketUrl,"Сетка на сайте турнира ↗")) : null, t.bracketText ? h("pre",{class:"pre"},t.bracketText) : null]
+          : h("p",{class:"muted",style:"margin:0"},"Не добавлена.")),
+      (t.place||t.result) ? h("section",{class:"sec"}, h("h3",{},"Итог"), t.place ? h("p",{style:"margin:0 0 6px;font-weight:700"},"Место: "+t.place) : null, t.result ? h("p",{class:"prose"},t.result) : null) : null,
+    ];
+    const actions = state.canWrite&&!state.offline ? [confirmBtn("Удалить",async()=>{ if(await del("tournaments",id)){ closeModal(); toast("Турнир удалён"); } }), h("button",{class:"btn",onclick:()=>tournamentForm(t)},"Редактировать")] : [];
+    return [t.name, body, actions];
+  };
+  const r = build(); if(!r) return;
+  openModal(r[0], r[1], r[2], "detail", ()=>{ const n=build(); if(!n) return; const mod=document.querySelector(".modal"); if(!mod) return; mod.querySelector(".m-head h2").textContent=n[0]; mod.querySelector(".m-body").replaceChildren(...n[1].filter(Boolean)); const f=mod.querySelector(".m-foot"); if(f) f.replaceChildren(...n[2]); });
+}
+function oppName(m){ const o = state.opponents.find(x=>x.id===m.opponentId); return o ? o.name : (m.opponentName||"Соперник"); }
+function matchRow(t,m){
+  const oc = m.outcome==="win" ? h("span",{class:"chip good"},"Победа") : m.outcome==="loss" ? h("span",{class:"chip bad"},"Поражение") : h("span",{class:"chip s-plan"},"Не играли");
+  return h("div",{class:"mrow"},
+    h("div",{style:"min-width:0"}, h("button",{class:"opp",onclick:()=>m.opponentId?openOpponent(m.opponentId):null},oppName(m)), h("div",{class:"meta"},[fmtDT(m.date), m.maps].filter(Boolean).join(" · ")||"дата и карты не указаны")),
+    h("div",{class:"mono",style:"min-width:0;overflow-wrap:anywhere"}, m.score||""),
+    h("div",{class:"r"}, oc, ext(m.demo,"Демка"), state.canWrite&&!state.offline ? h("button",{class:"btn ghost sm",onclick:()=>matchForm(t,m)},"Изменить") : null));
+}
+function matchForm(t,m){
+  const isNew = !m; m = m || {};
+  const dl = h("datalist",{id:"opp-list"}, state.opponents.map(o=>h("option",{value:o.name})));
+  const body = h("div",{class:"form"},
+    field("Команда соперника", inp("m-opp", m.opponentId ? oppName(m) : m.opponentName, "text","Начните вводить название"), true), dl,
+    field("Дата и время", inp("m-date",m.date,"datetime-local")),
+    field("Результат", sel("m-out",m.outcome||"",OUTCOME)),
+    field("Карты", inp("m-maps",m.maps,"text","Mirage, Ancient, Nuke"), true),
+    field("Счёт", inp("m-score",m.score,"text","13:9, 10:13, 13:7"), true),
+    field("Ссылка на демку", inp("m-demo",m.demo,"url","https://"), true),
+    h("p",{class:"muted",style:"grid-column:1/-1;margin:0;font-size:13px"},"Если такой команды ещё нет в «Соперниках», она появится там автоматически, и туда можно будет писать заметки."));
+  body.querySelector("#m-opp").setAttribute("list","opp-list");
+  const save = h("button",{class:"btn primary",onclick:async()=>{
+    const name = val("m-opp"); if(!name){ toast("Укажите соперника."); return; }
+    save.disabled = true;
+    let opp = state.opponents.find(o=>o.name.toLowerCase()===name.toLowerCase());
+    if(!opp){ const oid=newId("opponents"); const od={name}; if(!(await put("opponents",oid,od))){ save.disabled=false; return; } opp={id:oid,...od}; state.opponents=upsert(state.opponents,opp); }
+    const nm = {id:m.id||newId("tournaments"), opponentId:opp.id, opponentName:opp.name, date:val("m-date"), outcome:val("m-out"), maps:val("m-maps"), score:val("m-score"), demo:val("m-demo")};
+    const cur = state.tournaments.find(x=>x.id===t.id) || t;
+    const matches = (cur.matches||[]).filter(x=>x.id!==nm.id).concat([nm]);
+    const {id, ...rest} = cur;
+    if(await put("tournaments",t.id,{...rest, matches})){ state.tournaments=upsert(state.tournaments,{id:t.id,matches}); toast(isNew?"Соперник добавлен":"Сохранено"); openTournament(t.id); }
+    else save.disabled=false;
+  }}, isNew?"Добавить":"Сохранить");
+  const actions = [h("button",{class:"btn ghost",onclick:()=>openTournament(t.id)},"Отмена"), save];
+  if(!isNew) actions.unshift(confirmBtn("Убрать из турнира",async()=>{
+    const cur = state.tournaments.find(x=>x.id===t.id) || t; const matches=(cur.matches||[]).filter(x=>x.id!==m.id); const {id,...rest}=cur;
+    if(await put("tournaments",t.id,{...rest,matches})){ state.tournaments=upsert(state.tournaments,{id:t.id,matches}); openTournament(t.id); }
+  }));
+  openModal(isNew?"Соперник в турнире «"+t.name+"»":"Матч: правка", body, actions);
+}
+
+/* ---------- strats ---------- */
+const rid = () => Math.random().toString(36).slice(2,9);
+const zonesFor = map => (state.zones[map] && state.zones[map].length) ? state.zones[map] : (DEFAULT_ZONES[map]||[]);
+const isTree = s => s.side==="T" && (s.default || (s.branches||[]).length);
+function stratText(s){
+  const parts=[s.name,s.call,(s.tags||[]).join(" "),...Object.values(s.roles||{})];
+  const d=s.default||{}; parts.push(d.utility,d.notes,...Object.values(d.roles||{}));
+  for(const b of (s.branches||[])){ const f=b.finish||{}; parts.push((b.taken||[]).join(" "),b.info,f.name,f.utility,f.notes,...Object.values(f.roles||{})); }
+  return parts.filter(Boolean).join(" ").toLowerCase();
+}
+const branchHit = (b,zs) => zs.length>0 && zs.every(z=>(b.taken||[]).includes(z));
+function stratMatches(s){
+  const f = state.sf;
+  if(f.map && s.map!==f.map) return false;
+  if(f.side && s.side!==f.side) return false;
+  if(f.rt && s.roundType!==f.rt) return false;
+  if(f.st && s.status!==f.st) return false;
+  if(f.zones.length && !(s.side==="T" && (s.branches||[]).some(b=>branchHit(b,f.zones)))) return false;
+  if(f.q && !stratText(s).includes(f.q.toLowerCase())) return false;
+  return true;
+}
+function viewStrats(){
+  const f = state.sf;
+  const out = [h("div",{class:"bar"}, h("h1",{},"Стратбук"),
+    state.canWrite&&!state.offline ? h("button",{class:"btn ghost",onclick:mapsForm},"Карты и зоны") : null,
+    addBtn("Страта",()=>stratForm()))];
+  const search = h("input",{class:"search",id:"s-q",type:"search",placeholder:"Поиск по названию, тегам, ролям, доигровкам","aria-label":"Поиск страт"}); search.value=f.q;
+  search.addEventListener("input",()=>{ f.q=search.value; const g=document.getElementById("s-grid"); if(g) g.replaceWith(stratGrid()); });
+  const seg = (k,opts) => h("div",{class:"seg",role:"group"}, opts.map(([v,l])=>h("button",{"aria-pressed":String(f[k]===v),onclick:()=>{f[k]=v; if(k==="side"&&v==="CT") f.zones=[]; render();}},l)));
+  const rt = sel("s-rt",f.rt,{"":"Любой тип раунда",...ROUND_TYPES}); rt.addEventListener("change",()=>{f.rt=rt.value;render();});
+  const st = sel("s-st",f.st,{"":"Любой статус",...SSTATUS}); st.addEventListener("change",()=>{f.st=st.value;render();});
+  out.push(h("div",{class:"maps"}, [["","Все карты"],...state.maps.map(m=>[m,m])].map(([v,l])=>{
+    const n = v ? state.strats.filter(s=>s.map===v).length : state.strats.length;
+    return h("button",{class:"mapbtn","aria-pressed":String(f.map===v),onclick:()=>{f.map=v; f.zones=[]; render();}}, l, " ", h("span",{class:"mono muted",style:"font-size:11px"},n));
+  })));
+  out.push(h("div",{class:"filters"}, search, seg("side",[["","T и CT"],["T","T"],["CT","CT"]]), rt, st));
+  if(f.map && f.side!=="CT"){
+    const zs = zonesFor(f.map);
+    if(zs.length) out.push(h("div",{class:"zfilter"}, h("span",{class:"lbl"},"Что делаем, если забрали:"),
+      h("div",{class:"zones"}, zs.map(z=>h("button",{type:"button",class:"zone","aria-pressed":String(f.zones.includes(z)),onclick:()=>{ f.zones = f.zones.includes(z) ? f.zones.filter(x=>x!==z) : [...f.zones,z]; render(); }},z)),
+        f.zones.length ? h("button",{type:"button",class:"btn ghost sm",onclick:()=>{f.zones=[];render();}},"Сбросить") : null)));
+  }
+  if(!state.loaded.s && !state.offline) return [...out, loading()];
+  if(!state.strats.length){
+    out.push(h("div",{class:"empty"}, h("b",{},"Стратбук пока пуст"), h("span",{},"Добавьте первую страту. Для T-стороны раунд делится на дефолт, развилки по забранным зонам и доигровки."), addBtn("Добавить первую страту",()=>stratForm())));
+    return out;
+  }
+  out.push(stratGrid());
+  return out;
+}
+function stratGrid(){
+  const order = m => { const i=state.maps.indexOf(m); return i<0?999:i; };
+  const zs = state.sf.zones;
+  const list = state.strats.filter(stratMatches).sort((a,b)=>order(a.map)-order(b.map) || (a.side||"").localeCompare(b.side||"") || (a.name||"").localeCompare(b.name||"","ru"));
+  if(!list.length) return h("div",{class:"empty",id:"s-grid"},h("b",{},"Ничего не нашлось"),h("span",{},zs.length?"Ни в одной страте нет развилки с этими зонами.":"Попробуйте сбросить фильтры."));
+  return h("div",{class:"grid",id:"s-grid"}, list.map(s=>{
+    const brs = s.branches||[];
+    const hits = zs.length ? brs.filter(b=>branchHit(b,zs)) : [];
+    let sub = s.call || null;
+    if(isTree(s)){
+      const bits = [];
+      if(s.default && s.default.until) bits.push("дефолт до "+s.default.until);
+      bits.push(brs.length ? `${brs.length} ${plural(brs.length,"развилка","развилки","развилок")}` : "развилок нет");
+      sub = hits.length ? "→ "+hits.map(b=>(b.finish&&b.finish.name)||"доигровка").join(", ") : bits.join(" · ");
+    }
+    return h("button",{class:"scard",onclick:e=>openStrat(s.id, e.currentTarget)},
+      h("div",{class:"row"}, h("span",{class:"side "+(s.side||"T")},s.side||"T"), h("span",{class:"map"},s.map||"Карта?"), h("span",{class:"tag",style:"margin-left:auto"},ROUND_TYPES[s.roundType]||"")),
+      h("h3",{},s.name||"Без названия"),
+      sub ? h("p",{class:hits.length?"hitline":null},sub) : null,
+      h("div",{class:"foot"}, h("div",{class:"tags"},(s.tags||[]).slice(0,4).map(t=>h("span",{class:"tag"},"#"+t))), h("span",{class:"chip "+(s.status==="ready"?"good":"warn")},SSTATUS[s.status]||SSTATUS.wip)));
+  }));
+}
+const NADES = {smoke:"Смок",flash:"Флешка",molotov:"Молотов",he:"HE",decoy:"Декой"};
+async function uploadShot(blob, row, setPrev, btn, label){
+  if(!state.assets){ toast("Загружать скрины может только владелец или редактор."); return; }
+  if(btn){ btn.disabled=true; btn.textContent="Загружаю…"; }
+  try{ const r = await state.assets.upload(blob, blob.type ? undefined : {type:"image/jpeg"}); row.dataset.image=r.id; setPrev(); }
+  catch(e){ toast(e&&e.code==="too_large"?"Файл больше 20 МБ.":e&&e.code==="unsupported_type"?"Подходят только PNG, JPG, WebP или GIF.":"Не удалось загрузить скрин."); }
+  if(btn){ btn.disabled=false; btn.textContent=label; }
+}
+function framePicker(row, setPrev){
+  const old = row.querySelector(".fp"); if(old){ old.remove(); return; }
+  const file = h("input",{type:"file",accept:"video/mp4,video/webm,video/quicktime",hidden:true,"aria-label":"Видеофайл"});
+  const video = h("video",{muted:true,playsinline:true,preload:"auto"});
+  const range = h("input",{type:"range",min:"0",max:"0",step:"0.05",value:"0","aria-label":"Момент видео",disabled:true});
+  const time = h("span",{class:"mono muted",style:"font-size:12px;min-width:44px"},"0:00");
+  const take = h("button",{type:"button",class:"btn primary sm",disabled:true},"Взять этот кадр");
+  const hint = h("p",{class:"muted",style:"margin:0;font-size:13px"},"Выберите видеофайл с раскидкой, промотайте до нужного момента и возьмите кадр. Само видео не загружается, сохраняется только кадр.");
+  let url = null;
+  const fmt = s => Math.floor(s/60)+":"+String(Math.floor(s%60)).padStart(2,"0");
+  file.addEventListener("change",()=>{
+    const f=file.files[0]; if(!f) return;
+    if(url) URL.revokeObjectURL(url);
+    url = URL.createObjectURL(f); video.src = url; video.hidden=false;
+  });
+  video.addEventListener("loadedmetadata",()=>{ range.max=String(video.duration||0); range.disabled=false; take.disabled=false; video.currentTime=Math.min(0.1,video.duration||0); });
+  video.addEventListener("error",()=>toast("Это видео не открывается в браузере. Попробуйте MP4."));
+  range.addEventListener("input",()=>{ video.currentTime=Number(range.value); time.textContent=fmt(Number(range.value)); });
+  take.addEventListener("click",()=>{
+    if(!video.videoWidth){ toast("Кадр ещё не загрузился, подождите секунду."); return; }
+    const scale = Math.min(1, 1280/video.videoWidth);
+    const c = document.createElement("canvas"); c.width=Math.round(video.videoWidth*scale); c.height=Math.round(video.videoHeight*scale);
+    c.getContext("2d").drawImage(video,0,0,c.width,c.height);
+    c.toBlob(async b=>{ if(!b){ toast("Не удалось взять кадр."); return; } await uploadShot(b,row,setPrev,take,"Взять этот кадр"); if(row.dataset.image){ if(url) URL.revokeObjectURL(url); panel.remove(); } },"image/jpeg",0.86);
+  });
+  video.hidden = true;
+  const panel = h("div",{class:"fp"}, hint, file,
+    h("div",{}, h("button",{type:"button",class:"btn sm",onclick:()=>file.click()},"Выбрать видео")),
+    video, h("div",{class:"fp-ctl"}, range, time, take));
+  row.append(panel);
+}
+function lineupRow(l, phases){
+  l = l||{};
+  const row = h("div",{class:"lu-row"}); row.dataset.image = l.imageId||"";
+  const type = h("select",{class:"lu-type","aria-label":"Тип гранаты"}, Object.entries(NADES).map(([v,n])=>h("option",{value:v},n))); type.value = l.type||"smoke";
+  const t = h("input",{class:"lu-title",type:"text",placeholder:"Куда: окно с T-спавна","aria-label":"Куда кидаем"}); t.value=l.title||"";
+  const why = h("input",{class:"lu-why",type:"text",placeholder:"Зачем или против кого: отрезать AWP в окне","aria-label":"Зачем нужна граната"}); why.value=l.purpose||"";
+  const u = h("input",{class:"lu-url",type:"url",placeholder:"Ссылка на видео (YouTube и т. п.)","aria-label":"Ссылка на видео"}); u.value=l.url||"";
+  const prev = h("div",{class:"lu-prev",title:"Сюда можно вставить скрин из буфера: Ctrl+V"});
+  const setPrev = () => prev.replaceChildren(row.dataset.image ? h("img",{src:blobUrl(row.dataset.image),alt:""}) : h("span",{},"нет кадра"));
+  setPrev();
+  const phase = h("select",{class:"lu-phase","aria-label":"Когда кидаем"});
+  let phaseVal = l.phase || "default";
+  const fillPhase = () => {
+    const opts = phases ? phases() : [["default","На дефолте"]];
+    if(!opts.some(o=>o[0]===phaseVal)) phaseVal = phaseVal.startsWith("b:") ? "default" : phaseVal;
+    phase.replaceChildren(...opts.map(([v,n])=>h("option",{value:v},n))); phase.value = phaseVal;
+  };
+  phase.addEventListener("change",()=>{ phaseVal = phase.value; });
+  phase.addEventListener("focus",fillPhase); phase.addEventListener("pointerdown",fillPhase);
+  fillPhase();
+  row.read = () => ({type:type.value, phase:phaseVal, title:t.value.trim(), purpose:why.value.trim(), url:u.value.trim(), imageId:row.dataset.image||""});
+  const acts = h("div",{class:"lu-actions"});
+  if(state.assets){
+    const file = h("input",{type:"file",accept:"image/png,image/jpeg,image/webp,image/gif",hidden:true,"aria-label":"Скриншот"});
+    const up = h("button",{type:"button",class:"btn ghost sm",onclick:()=>file.click()},"Скрин");
+    file.addEventListener("change", async()=>{ const f=file.files[0]; if(f) await uploadShot(f,row,setPrev,up,"Скрин"); file.value=""; });
+    acts.append(h("button",{type:"button",class:"btn ghost sm",onclick:()=>framePicker(row,setPrev)},"Кадр из видео"), file, up);
+    row.addEventListener("paste", e=>{
+      const it = [...(e.clipboardData?.items||[])].find(x=>x.type.startsWith("image/"));
+      if(!it) return; e.preventDefault(); const f=it.getAsFile(); if(f) uploadShot(f,row,setPrev,null,"");
+    });
+  }
+  if(row.dataset.image) acts.append(h("button",{type:"button",class:"btn ghost sm",onclick:()=>{ row.dataset.image=""; setPrev(); }},"Убрать кадр"));
+  acts.append(h("button",{type:"button",class:"btn ghost sm danger",onclick:()=>row.remove()},"Удалить"));
+  row.append(prev, h("div",{class:"lu-fields"}, h("div",{class:"lu-line"},type,phase,t), why, u), acts);
+  return row;
+}
+const rolesInputs = (prefix, roles, area) => h("div",{class:"rgrid"}, ROLES.map(([k,l])=>field(l, area ? ta(prefix+k,(roles||{})[k],"",2) : inp(prefix+k,(roles||{})[k],"text",""))));
+const readRoles = prefix => Object.fromEntries(ROLES.map(([k])=>[k,val(prefix+k)]));
+function branchEditor(b, getMap){
+  b = b || {id:rid(), taken:[], info:"", finish:{roles:{}}};
+  const f = b.finish||{}, p = "b-"+b.id+"-";
+  const taken = new Set(b.taken||[]);
+  const chips = h("div",{class:"zones"});
+  const box = h("div",{class:"br-ed"});
+  box.redraw = () => {
+    const zs = zonesFor(getMap()); const all = [...zs, ...[...taken].filter(z=>!zs.includes(z))];
+    chips.replaceChildren(...(all.length ? all.map(z=>h("button",{type:"button",class:"zone","aria-pressed":String(taken.has(z)),onclick:e=>{ taken.has(z)?taken.delete(z):taken.add(z); e.currentTarget.setAttribute("aria-pressed",String(taken.has(z))); }},z))
+      : [h("span",{class:"muted",style:"font-size:13px"},"Для этой карты нет списка зон. Добавьте их в «Карты и зоны».")]));
+  };
+  box.bid = b.id; box.fname = () => { const e = box.querySelector("#"+CSS.escape(p+"fname")); return e ? e.value.trim() : ""; };
+  box.read = () => ({id:b.id, taken:[...taken], info:val(p+"info"), finish:{name:val(p+"fname"), roles:readRoles(p+"r-"), utility:val(p+"util"), notes:val(p+"notes")}});
+  box.redraw();
+  box.append(
+    h("div",{class:"br-head"}, h("b",{class:"br-num"},"Развилка"), h("button",{type:"button",class:"btn ghost sm",onclick:()=>box.remove()},"Убрать")),
+    h("div",{class:"br-cols"},
+      h("div",{class:"br-col"}, h("div",{class:"stage s2"},"2 · Коммуникация: что забрали"), chips,
+        field("Что увидели и что говорим", ta(p+"info",b.info,"Мид пустой, на B двое, AWP в окне",3))),
+      h("div",{class:"br-col"}, h("div",{class:"stage s3"},"3 · Доигровка"),
+        field("Название", inp(p+"fname",f.name,"text","Сплит A через коннектор")),
+        rolesInputs(p+"r-", f.roles, false),
+        f.utility ? field("Старая запись о гранатах (перенесите в «Раскидку» и очистите)", ta(p+"util",f.utility,"",2)) : null,
+        h("p",{class:"muted",style:"margin:0;font-size:13px"},"Гранаты для этой доигровки добавляются в «Раскидке» ниже, в поле «Когда» выберите эту доигровку."),
+        field("Заметки", ta(p+"notes",f.notes,"",2)))));
+  return box;
+}
+function stratForm(s){
+  const isNew=!s;
+  s = s || {side:state.sf.side||"T",roundType:"full",status:"wip",map:state.sf.map||state.maps[0],roles:{},lineups:[],default:{roles:{}},branches:[]};
+  const d = s.default||{};
+  const mapOpts = Object.fromEntries(state.maps.map(m=>[m,m])); if(s.map && !mapOpts[s.map]) mapOpts[s.map]=s.map;
+  const mapSel = sel("s-map",s.map,mapOpts), sideSel = sel("s-side",s.side,{T:"T",CT:"CT"});
+  const brList = h("div",{class:"br-list"});
+  const phases = () => [["default","На дефолте"], ...[...brList.querySelectorAll(".br-ed")].map((x,i)=>["b:"+x.bid, "Доигровка: "+(x.fname()||"вариант "+(i+1))]), ["finish","На всех доигровках"]];
+  const getMap = () => mapSel.value;
+  const brs = (s.branches||[]).length ? s.branches : (isNew ? [null,null] : []);
+  brs.forEach(b=>brList.append(branchEditor(b,getMap)));
+  const lus = h("div",{class:"lu-list"}, (s.lineups||[]).map(l=>lineupRow(l,phases)));
+  mapSel.addEventListener("change",()=>brList.querySelectorAll(".br-ed").forEach(x=>x.redraw()));
+  const tBox = h("div",{class:"sub"},
+    h("div",{class:"stage s1 wide"},"1 · Дефолт"),
+    field("Держим дефолт до", inp("d-until",d.until,"text","1:20")), h("div"),
+    h("div",{class:"field wide"}, h("span",{class:"lbl"},"Кто какую зону берёт"), rolesInputs("d-r-", d.roles, true)),
+    d.utility ? field("Старая запись о гранатах (перенесите в «Раскидку» и очистите)", ta("d-util",d.utility,"",2), true) : null,
+    field("Заметки к дефолту", ta("d-notes",d.notes,"",2), true),
+    h("div",{class:"field wide"}, h("span",{class:"lbl"},"Развилки: для каждого варианта отметьте забранные зоны и распишите доигровку"), brList,
+      h("div",{}, h("button",{type:"button",class:"btn sm",onclick:()=>brList.append(branchEditor(null,getMap))},"+ Развилка"))));
+  const cBox = h("div",{class:"sub"}, fset("Задачи игроков"), ROLES.map(([k,l])=>field(l, ta("s-r-"+k,(s.roles||{})[k],"",2), true)));
+  let body;
+  const sync = () => { const t = sideSel.value==="T"; tBox.hidden=!t; cBox.hidden=t; if(body) body.classList.toggle("ct",!t); };
+  sideSel.addEventListener("change",sync);
+  body = h("div",{class:"form"},
+    field("Название", inp("s-name",s.name,"text","Например, Контроль мида"), true),
+    field("Карта", mapSel), field("Сторона", sideSel),
+    field("Тип раунда", sel("s-round",s.roundType,ROUND_TYPES)),
+    field("Статус", sel("s-status",s.status,SSTATUS)),
+    field("Когда вызываем", ta("s-call",s.call,"После двух проигранных раундов на A",2), true),
+    tBox, cBox,
+    fset("Раскидка"),
+    h("div",{class:"field wide"}, lus, h("div",{},h("button",{type:"button",class:"btn sm",onclick:()=>lus.append(lineupRow(null,phases))},"+ Гранату"))),
+    !state.assets ? h("p",{class:"muted",style:"grid-column:1/-1;margin:0;font-size:13px"},"Загружать скрины может только владелец или редактор. Вы можете добавить ссылку на видео.") : null,
+    field("Теги через запятую", inp("s-tags",(s.tags||[]).join(", "),"text","быстрая, против AWP, анти-эко"), true));
+  sync();
+  const save = h("button",{class:"btn primary",onclick:async()=>{
+    const name=val("s-name"); if(!name){ toast("Укажите название страты."); document.getElementById("s-name").focus(); return; }
+    const id = s.id || newId("strats");
+    const lineups = [...lus.querySelectorAll(".lu-row")].map(r=>r.read()).filter(x=>x.title||x.purpose||x.url||x.imageId);
+    const branches = [...brList.querySelectorAll(".br-ed")].map(x=>x.read()).filter(b=>b.taken.length||b.info||b.finish.name||b.finish.utility||b.finish.notes||Object.values(b.finish.roles).some(Boolean));
+    const doc = {name, map:val("s-map"), side:val("s-side"), roundType:val("s-round"), status:val("s-status"), call:val("s-call"),
+      roles:readRoles("s-r-"), default:{until:val("d-until"), roles:readRoles("d-r-"), utility:val("d-util"), notes:val("d-notes")}, branches, lineups,
+      tags:val("s-tags").split(",").map(x=>x.trim()).filter(Boolean)};
+    save.disabled=true;
+    if(await put("strats",id,doc)){ toast(isNew?"Страта добавлена":"Сохранено"); state.strats=upsert(state.strats,{id,...doc}); openStrat(id); }
+    else save.disabled=false;
+  }}, isNew?"Добавить":"Сохранить");
+  openModal(isNew?"Новая страта":"Страта: правка", body, [h("button",{class:"btn ghost",onclick:()=>s.id?openStrat(s.id):closeModal()},"Отмена"), save]);
+  document.querySelector(".modal")?.classList.add("wide");
+}
+const rolesMini = r => { const xs = ROLES.filter(([k])=>r && r[k]); return xs.length ? h("div",{class:"rmini"}, xs.map(([k,l])=>h("div",{},h("b",{},l),h("span",{},r[k])))) : null; };
+function treeView(s){
+  const brs = s.branches||[], zs = state.sf.zones, d = s.default||{};
+  const n = Math.max(brs.length,1);
+  const tree = h("div",{class:"tree"},
+    h("div",{class:"th s1",style:"grid-column:1;grid-row:1"},"1 · Дефолт"),
+    h("div",{class:"th s2",style:"grid-column:2;grid-row:1"},"2 · Коммуникация"),
+    h("div",{class:"th s3",style:"grid-column:3;grid-row:1"},"3 · Доигровка"),
+    h("div",{class:"node def",style:`grid-column:1;grid-row:2 / span ${n}`},
+      h("div",{class:"nh"},"Дефолт", d.until ? h("span",{class:"mono until"},"до "+d.until) : null),
+      rolesMini(d.roles) || h("p",{class:"muted small"},"Расстановка не расписана."),
+      d.utility ? h("p",{class:"prose small"},h("b",{},"Гранаты: "),d.utility) : null,
+      d.notes ? h("p",{class:"prose small"},d.notes) : null));
+  if(!brs.length) tree.append(h("div",{class:"node",style:"grid-column:2 / 4;grid-row:2"},h("p",{class:"muted small"},"Развилок пока нет. Нажмите «Редактировать», чтобы добавить.")));
+  brs.forEach((b,i)=>{
+    const f = b.finish||{}, hit = branchHit(b,zs), dim = zs.length && !hit;
+    tree.append(
+      h("div",{class:"node cond"+(hit?" hit":"")+(dim?" dim":""),style:`grid-column:2;grid-row:${i+2}`},
+        h("div",{class:"nh"},"Если забрали"),
+        h("div",{class:"zones"}, (b.taken||[]).length ? b.taken.map(z=>h("span",{class:"zone static"+(zs.includes(z)?" on":"")},z)) : h("span",{class:"muted small"},"ничего")),
+        b.info ? h("p",{class:"prose small"},b.info) : null),
+      h("div",{class:"node fin"+(hit?" hit":"")+(dim?" dim":""),style:`grid-column:3;grid-row:${i+2}`},
+        h("div",{class:"nh"}, f.name||"Доигровка"),
+        rolesMini(f.roles),
+        f.utility ? h("p",{class:"prose small"},h("b",{},"Гранаты: "),f.utility) : null,
+        f.notes ? h("p",{class:"prose small"},f.notes) : null));
+  });
+  return tree;
+}
+function openStrat(id, fromEl){
+  const s0 = state.strats.find(x=>x.id===id);
+  if(s0 && s0.side==="T"){ openRound(id, fromEl); return; }
+  const build = () => {
+    const s = state.strats.find(x=>x.id===id); if(!s){ closeModal(); return null; }
+    const roles = ROLES.filter(([k])=>(s.roles||{})[k]);
+    const body = [
+      h("div",{class:"chips",style:"margin-top:0"}, h("span",{class:"side "+(s.side||"T")},s.side||"T"), h("span",{class:"chip"},s.map||"Карта?"), h("span",{class:"chip"},ROUND_TYPES[s.roundType]||""), h("span",{class:"chip "+(s.status==="ready"?"good":"warn")},SSTATUS[s.status]||SSTATUS.wip)),
+      s.call ? h("section",{class:"sec"}, h("h3",{},"Когда вызываем"), h("p",{class:"prose"},s.call)) : null,
+      s.side==="T" ? h("section",{class:"sec"}, h("h3",{},"Раунд"), treeView(s))
+        : h("section",{class:"sec"}, h("h3",{},"Задачи игроков"), roles.length ? h("div",{class:"roles"}, roles.map(([k,l])=>h("div",{},h("b",{},l),h("p",{class:"prose"},s.roles[k])))) : h("p",{class:"muted",style:"margin:0"},"Роли не расписаны.")),
+      (s.lineups||[]).length ? h("section",{class:"sec"}, h("h3",{},"Раскидка"), h("div",{class:"lineups"}, s.lineups.map(l=>h("div",{class:"lineup"},
+        l.imageId ? h("img",{src:blobUrl(l.imageId),alt:l.title||"Раскидка",loading:"lazy"}) : h("div",{class:"noimg"},"нет кадра"),
+        h("div",{}, h("div",{class:"lu-top"}, h("span",{class:"nade n-"+(l.type||"smoke")},NADES[l.type]||"Граната"), h("b",{},l.title||"")),
+          l.purpose ? h("span",{class:"muted"},l.purpose) : null, ext(l.url,"Смотреть видео ↗")))))) : null,
+      (s.tags||[]).length ? h("div",{class:"tags"}, s.tags.map(t=>h("span",{class:"tag"},"#"+t))) : null,
+    ];
+    const actions = state.canWrite&&!state.offline ? [confirmBtn("Удалить",async()=>{ if(await del("strats",id)){ closeModal(); toast("Страта удалена"); } }), h("button",{class:"btn",onclick:()=>stratForm(s)},"Редактировать")] : [];
+    return [s.name, body, actions];
+  };
+  const r=build(); if(!r) return;
+  openModal(r[0], r[1].filter(Boolean), r[2], "detail", ()=>{ const n=build(); if(!n) return; const mod=document.querySelector(".modal"); if(!mod) return; mod.querySelector(".m-head h2").textContent=n[0]; mod.querySelector(".m-body").replaceChildren(...n[1].filter(Boolean)); const f=mod.querySelector(".m-foot"); if(f) f.replaceChildren(...n[2]); });
+  const isT = (state.strats.find(x=>x.id===id)||{}).side==="T";
+  document.querySelector(".modal")?.classList.toggle("wide", isT);
+}
+function mapsForm(){
+  const text = state.maps.map(m=>{ const z=zonesFor(m); return z.length ? m+": "+z.join(", ") : m; }).join("\n");
+  const t = ta("maps-list", text, "", 10);
+  const save = h("button",{class:"btn primary",onclick:async()=>{
+    const maps=[], zones={};
+    for(const line of t.value.split("\n")){
+      const raw=line.trim(); if(!raw) continue;
+      const i=raw.indexOf(":"); const name=(i<0?raw:raw.slice(0,i)).trim(); if(!name) continue;
+      maps.push(name); zones[name] = i<0 ? zonesFor(name) : raw.slice(i+1).split(",").map(x=>x.trim()).filter(Boolean);
+    }
+    if(!maps.length){ toast("Нужна хотя бы одна карта."); return; }
+    save.disabled=true;
+    if(await put("settings","maps",{maps,zones})){ state.maps=maps; state.zones=zones; toast("Карты и зоны обновлены"); closeModal(); render(); } else save.disabled=false;
+  }},"Сохранить");
+  openModal("Карты и зоны", [h("p",{class:"muted",style:"margin:0"},"Одна карта в строке, после двоеточия зоны через запятую. Порядок карт задаёт порядок в стратбуке. Страты на убранных картах не удаляются."), field("Карты", t, true)], [h("button",{class:"btn ghost",onclick:closeModal},"Отмена"), save]);
+}
+
+/* ---------- round viewer ---------- */
+const STAGES = [["s1","Дефолт"],["s2","Коммуникация"],["s3","Доигровка"]];
+const reduceMotion = () => window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches;
+const linkify = text => { const out=[]; String(text||"").split(/(https?:\/\/\S+)/g).forEach((part,i)=>out.push(i%2 ? ext(part,part) : part)); return out; };
+const prose = (text,cls) => h("p",{class:"prose"+(cls?" "+cls:"")}, linkify(text));
+function openRound(id, fromEl, startStage){
+  closeModal();
+  const s0 = state.strats.find(x=>x.id===id); if(!s0) return;
+  const zs = state.sf.zones;
+  let stage = startStage||0;
+  let branch = Math.max(0,(s0.branches||[]).findIndex(b=>branchHit(b,zs)));
+  const rv = h("div",{class:"rv",role:"dialog","aria-modal":"true","aria-label":s0.name,tabindex:"-1"});
+  const title = h("h2",{class:"rv-name"});
+  const meta = h("div",{class:"chips",style:"margin:0"});
+  const editBtn = state.canWrite&&!state.offline ? h("button",{class:"btn sm",onclick:()=>{ const s=state.strats.find(x=>x.id===id); if(s) stratForm(s); }},"Редактировать") : null;
+  const head = h("header",{class:"rv-head"}, h("button",{class:"btn ghost sm",onclick:closeModal,"aria-label":"Назад к стратбуку"},"← Стратбук"), h("div",{class:"rv-titles"},title,meta), editBtn);
+
+  const labels = h("div",{class:"tl-labels"});
+  const fills = STAGES.map(([c])=>h("div",{class:"tl-fill"}));
+  const bars = h("div",{class:"tl-bars"}, STAGES.map(([c],i)=>h("div",{class:"tl-bar "+c}, fills[i])));
+  const knob = h("div",{class:"tl-knob"});
+  bars.append(knob);
+  const tl = h("div",{class:"tl",role:"tablist","aria-label":"Части раунда"}, labels, bars);
+  const track = h("div",{class:"rv-track"});
+  const pages = STAGES.map(()=>h("section",{class:"rv-page",role:"tabpanel"}));
+  track.append(...pages);
+  rv.append(head, h("div",{class:"rv-time"},tl), track);
+
+  const go = (i, smooth=true) => { i=Math.max(0,Math.min(2,i)); track.scrollTo({left:i*track.clientWidth, behavior: smooth&&!reduceMotion() ? "smooth" : "auto"}); };
+  const setStage = i => { if(i===stage && pages[i].classList.contains("on")) return; stage=i; pages.forEach((p,j)=>p.classList.toggle("on",j===i)); labels.querySelectorAll(".tl-lab").forEach((l,j)=>l.setAttribute("aria-selected",String(j===i))); };
+  const paint = () => {
+    const w = track.clientWidth || 1, prog = Math.max(0,Math.min(2,track.scrollLeft/w));
+    fills.forEach((f,i)=>f.style.transform=`scaleX(${Math.max(0,Math.min(1,prog+0.5-i))})`);
+    knob.style.left = `calc(${(prog+0.5)/3*100}% - 8px)`;
+    setStage(Math.round(prog));
+  };
+
+  function build(){
+    const s = state.strats.find(x=>x.id===id); if(!s){ closeModal(); return; }
+    const d = s.default||{}, brs = s.branches||[];
+    if(branch>=brs.length) branch=0;
+    title.textContent = s.name;
+    meta.replaceChildren(h("span",{class:"side "+(s.side||"T")},s.side||"T"), h("span",{class:"chip"},s.map||"Карта?"), h("span",{class:"chip"},ROUND_TYPES[s.roundType]||""), h("span",{class:"chip "+(s.status==="ready"?"good":"warn")},SSTATUS[s.status]||SSTATUS.wip));
+    const times = [d.until ? "1:55 – "+d.until : "старт", d.until ? "после "+d.until : "", brs[branch] && brs[branch].finish && brs[branch].finish.name || ""];
+    labels.replaceChildren(...STAGES.map(([c,n],i)=>h("button",{class:"tl-lab "+c,role:"tab","aria-selected":String(i===stage),onclick:()=>go(i)}, h("span",{class:"tl-n"},(i+1)+" · "+n), times[i] ? h("span",{class:"tl-t"},times[i]) : null)));
+    const nades = s.lineups||[];
+    const brIds = new Set(brs.map(b=>"b:"+b.id));
+    const defNades = nades.filter(l=>!l.phase || l.phase==="default" || (l.phase.startsWith("b:") && !brIds.has(l.phase)));
+    let k=0; const it = el => { if(el) el.style.setProperty("--i",k++); return el; };
+
+    // 1 · default
+    k=0;
+    const roleCards = ROLES.map(([r,l])=>d.roles&&d.roles[r] ? it(h("div",{class:"role-card"},h("b",{},l),prose(d.roles[r]))) : null).filter(Boolean);
+    pages[0].replaceChildren(h("div",{class:"rv-in"},
+      it(h("div",{class:"rv-kick s1"},"Часть 1 из 3 · Дефолт"+(d.until?" · держим до "+d.until:""))),
+      s.call ? it(h("p",{class:"rv-lead"},s.call)) : null,
+      roleCards.length ? h("div",{class:"role-grid"},roleCards) : it(h("p",{class:"muted"},"Расстановка в дефолте не расписана.")),
+      defNades.length ? it(h("div",{class:"rv-block"},h("h3",{},"Гранаты на дефолте"),h("div",{class:"lineups"},defNades.map(lineupCard)))) : null,
+      d.utility ? it(h("div",{class:"rv-block"},h("h3",{},"Заметки по гранатам"),prose(d.utility))) : null,
+      d.notes ? it(h("div",{class:"rv-block"},h("h3",{},"Заметки"),prose(d.notes))) : null,
+      it(h("div",{class:"rv-next"},h("span",{class:"muted"},"Листайте дальше"),h("button",{class:"btn",onclick:()=>go(1)},"Коммуникация →")))));
+
+    // 2 · communication
+    k=0;
+    pages[1].replaceChildren(h("div",{class:"rv-in"},
+      it(h("div",{class:"rv-kick s2"},"Часть 2 из 3 · Коммуникация")),
+      it(h("p",{class:"rv-lead"},brs.length ? "Что забрали к "+(d.until||"концу дефолта")+"? Выберите вариант, и следующая часть покажет доигровку под него." : "Развилок пока нет.")),
+      brs.length ? h("div",{class:"br-pick"}, brs.map((b,i)=>it(h("button",{class:"br-card","aria-pressed":String(i===branch),onclick:()=>{ branch=i; build(); go(2); }},
+        h("div",{class:"br-card-n"},"Вариант "+(i+1)),
+        h("div",{class:"zones"}, (b.taken||[]).length ? b.taken.map(z=>h("span",{class:"zone static"+(zs.includes(z)?" on":"")},z)) : h("span",{class:"muted small"},"ничего не забрали")),
+        b.info ? prose(b.info,"small") : null,
+        h("div",{class:"br-card-go"},"→ "+((b.finish&&b.finish.name)||"Доигровка")))))) : null,
+      it(h("div",{class:"rv-next"},h("button",{class:"btn ghost",onclick:()=>go(0)},"← Дефолт"),brs.length?h("button",{class:"btn",onclick:()=>go(2)},"Доигровка →"):null))));
+
+    // 3 · finish
+    k=0;
+    const b = brs[branch], f = (b&&b.finish)||{};
+    const froles = ROLES.map(([r,l])=>f.roles&&f.roles[r] ? it(h("div",{class:"role-card"},h("b",{},l),prose(f.roles[r]))) : null).filter(Boolean);
+    pages[2].replaceChildren(h("div",{class:"rv-in"},
+      it(h("div",{class:"rv-kick s3"},"Часть 3 из 3 · Доигровка")),
+      brs.length>1 ? it(h("div",{class:"seg br-switch",role:"group","aria-label":"Вариант"}, brs.map((x,i)=>h("button",{"aria-pressed":String(i===branch),onclick:()=>{branch=i; build();}},(x.finish&&x.finish.name)||("Вариант "+(i+1)))))) : null,
+      b ? [
+        it(h("h3",{class:"rv-title"},f.name||"Доигровка")),
+        it(h("div",{class:"zones"}, h("span",{class:"muted small"},"Если забрали:"), (b.taken||[]).length ? b.taken.map(z=>h("span",{class:"zone static"},z)) : h("span",{class:"muted small"},"ничего"))),
+        froles.length ? h("div",{class:"role-grid"},froles) : it(h("p",{class:"muted"},"Роли в доигровке не расписаны.")),
+        (()=>{ const fn = nades.filter(l=>l.phase==="finish" || l.phase==="b:"+b.id); return fn.length ? it(h("div",{class:"rv-block"},h("h3",{},"Гранаты на доигровке"),h("div",{class:"lineups"},fn.map(lineupCard)))) : null; })(),
+        f.utility ? it(h("div",{class:"rv-block"},h("h3",{},"Заметки по гранатам"),prose(f.utility))) : null,
+        f.notes ? it(h("div",{class:"rv-block"},h("h3",{},"Заметки"),prose(f.notes))) : null,
+      ] : it(h("p",{class:"muted"},"Доигровок пока нет. Добавьте развилки через «Редактировать».")),
+      it(h("div",{class:"rv-next"},h("button",{class:"btn ghost",onclick:()=>go(1)},"← Коммуникация")))));
+    pages.forEach((p,j)=>p.classList.toggle("on",j===stage));
+  }
+
+  build();
+  document.body.append(rv); document.body.classList.add("locked");
+  state.modal = {kind:"round", rerender:()=>{ const keep=stage; build(); go(keep,false); }};
+  requestAnimationFrame(()=>{ go(stage,false); paint(); rv.focus(); });
+
+  track.addEventListener("scroll", paint, {passive:true});
+  window.addEventListener("resize", ()=>{ if(rv.isConnected) go(stage,false); });
+  let lock = 0;
+  track.addEventListener("wheel", e=>{
+    const horiz = Math.abs(e.deltaX) > Math.abs(e.deltaY);
+    if(horiz) return;
+    const p = pages[stage], atEnd = p.scrollTop + p.clientHeight >= p.scrollHeight - 2, atTop = p.scrollTop <= 0;
+    if((e.deltaY>0 && atEnd && stage<2) || (e.deltaY<0 && atTop && stage>0)){
+      e.preventDefault();
+      const now = Date.now(); if(now < lock || Math.abs(e.deltaY) < 4){ lock = Math.max(lock, now + 220); return; }
+      lock = now + 700; go(stage + (e.deltaY>0?1:-1));
+    }
+  }, {passive:false});
+  rv.addEventListener("keydown", e=>{
+    if(e.target.closest && e.target.closest("input,textarea,select")) return;
+    if(e.key==="ArrowRight"||e.key==="PageDown"){ e.preventDefault(); go(stage+1); }
+    if(e.key==="ArrowLeft"||e.key==="PageUp"){ e.preventDefault(); go(stage-1); }
+  });
+  let drag = false;
+  const scrub = e => { const r = bars.getBoundingClientRect(); const frac = Math.max(0,Math.min(0.9999,(e.clientX-r.left)/r.width)); track.style.scrollSnapType="none"; track.scrollLeft = (frac*3-0.5)*track.clientWidth; };
+  bars.addEventListener("pointerdown", e=>{ drag=true; bars.setPointerCapture(e.pointerId); scrub(e); });
+  bars.addEventListener("pointermove", e=>{ if(drag) scrub(e); });
+  const endDrag = () => { if(!drag) return; drag=false; const i=Math.round(track.scrollLeft/track.clientWidth); track.style.scrollSnapType=""; go(i); };
+  bars.addEventListener("pointerup", endDrag); bars.addEventListener("pointercancel", endDrag);
+
+  if(fromEl && !reduceMotion() && rv.animate){
+    const r = fromEl.getBoundingClientRect(), vw = innerWidth, vh = innerHeight;
+    rv.animate([{clipPath:`inset(${r.top}px ${vw-r.right}px ${vh-r.bottom}px ${r.left}px round 10px)`, opacity:.7},{clipPath:"inset(0px 0px 0px 0px round 0px)", opacity:1}],{duration:460, easing:"cubic-bezier(.2,.8,.2,1)"});
+    tl.animate([{opacity:0,transform:"translateY(-6px)"},{opacity:1,transform:"none"}],{duration:380,delay:220,easing:"ease-out",fill:"backwards"});
+  }
+}
+function lineupCard(l){
+  return h("div",{class:"lineup"},
+    l.imageId ? h("img",{src:blobUrl(l.imageId),alt:l.title||"Раскидка",loading:"lazy"}) : h("div",{class:"noimg"},"нет кадра"),
+    h("div",{}, h("div",{class:"lu-top"}, h("span",{class:"nade n-"+(l.type||"smoke")},NADES[l.type]||"Граната"), h("b",{},l.title||"")),
+      l.purpose ? h("span",{class:"muted"},l.purpose) : null, ext(l.url,"Смотреть видео ↗")));
+}
+
+/* ---------- opponents ---------- */
+function meetings(oid){
+  const res=[]; for(const t of state.tournaments) for(const m of (t.matches||[])) if(m.opponentId===oid) res.push({t,m});
+  return res.sort((a,b)=>(b.m.date||b.t.start||"").localeCompare(a.m.date||a.t.start||""));
+}
+function viewOpponents(){
+  const out=[h("div",{class:"bar"}, h("h1",{},"Досье на соперников"), addBtn("Команда",()=>opponentForm()))];
+  if(!state.loaded.o && !state.offline) return [...out, loading()];
+  if(!state.opponents.length){
+    out.push(h("div",{class:"empty"},h("b",{},"Досье пока пусто"),h("span",{},"Команды появляются здесь, когда вы добавляете соперников в турнир. Можно завести карточку и вручную."),addBtn("Добавить команду",()=>opponentForm())));
+    return out;
+  }
+  const q = h("input",{class:"search",id:"o-q",type:"search",placeholder:"Найти команду","aria-label":"Поиск соперника"}); q.value=state.oq;
+  q.addEventListener("input",()=>{ state.oq=q.value; document.getElementById("o-grid").replaceWith(oppGrid()); });
+  out.push(h("div",{class:"filters"},q), oppGrid());
+  return out;
+}
+function oppGrid(){
+  const q = state.oq.toLowerCase();
+  const list = state.opponents.filter(o=>!q || (o.name||"").toLowerCase().includes(q)).sort((a,b)=>(a.name||"").localeCompare(b.name||"","ru"));
+  if(!list.length) return h("div",{class:"empty",id:"o-grid"},h("b",{},"Такой команды нет"));
+  return h("div",{class:"grid",id:"o-grid"}, list.map(o=>{
+    const mt = meetings(o.id); const rec = matchRecord(mt.map(x=>x.m));
+    const filled = [o.favMaps,o.tNotes,o.ctNotes,o.players,o.notes].some(Boolean);
+    return h("button",{class:"scard",onclick:()=>openOpponent(o.id)},
+      h("div",{class:"row"}, h("h3",{style:"margin-right:auto"},o.name), o.region ? h("span",{class:"tag"},o.region) : null),
+      o.favMaps ? h("p",{},"Любят: "+o.favMaps) : h("p",{},filled?"":"Заметок пока нет"),
+      h("div",{class:"foot"}, h("span",{class:"meta mono"}, mt.length ? `${mt.length} ${plural(mt.length,"встреча","встречи","встреч")} · ${rec.w}–${rec.l}` : "не встречались"), !filled ? h("span",{class:"chip warn"},"Нужно досье") : null));
+  }));
+}
+function opponentForm(o){
+  const isNew=!o; o=o||{};
+  const body = h("div",{class:"form"},
+    field("Название команды", inp("o-name",o.name,"text"), false),
+    field("Регион или лига", inp("o-region",o.region,"text","EU, CIS, ESEA Main")),
+    field("Любимые карты", inp("o-maps",o.favMaps,"text","Пикают Anubis, банят Nuke"), true),
+    field("Привычки на T", ta("o-t",o.tNotes,"Часто идут в быстрый A на пистолетке",3), true),
+    field("Привычки на CT", ta("o-ct",o.ctNotes,"AWP стоит на мид, ротация на B медленная",3), true),
+    field("Ключевые игроки", ta("o-pl",o.players,"ник: роль, чем опасен",3), true),
+    field("Общие заметки", ta("o-notes",o.notes,"",3), true));
+  const save = h("button",{class:"btn primary",onclick:async()=>{
+    const name=val("o-name"); if(!name){ toast("Укажите название команды."); return; }
+    const dupe = state.opponents.find(x=>x.id!==o.id && x.name.toLowerCase()===name.toLowerCase());
+    if(dupe){ toast("Такая команда уже есть в досье."); return; }
+    const id=o.id||newId("opponents");
+    const doc={name, region:val("o-region"), favMaps:val("o-maps"), tNotes:val("o-t"), ctNotes:val("o-ct"), players:val("o-pl"), notes:val("o-notes")};
+    save.disabled=true;
+    if(await put("opponents",id,doc)){ toast(isNew?"Команда добавлена":"Сохранено"); state.opponents=upsert(state.opponents,{id,...doc}); openOpponent(id); } else save.disabled=false;
+  }}, isNew?"Добавить":"Сохранить");
+  openModal(isNew?"Новая команда":"Досье: правка", body, [h("button",{class:"btn ghost",onclick:()=>o.id?openOpponent(o.id):closeModal()},"Отмена"), save]);
+}
+function openOpponent(id){
+  const build=()=>{
+    const o=state.opponents.find(x=>x.id===id); if(!o){ closeModal(); return null; }
+    const mt=meetings(id); const rec=matchRecord(mt.map(x=>x.m));
+    const sec=(t,v)=>v?h("section",{class:"sec"},h("h3",{},t),h("p",{class:"prose"},v)):null;
+    const body=[
+      h("div",{class:"chips",style:"margin-top:0"}, o.region?h("span",{class:"chip"},o.region):null, h("span",{class:"chip"}, mt.length?`Встреч: ${mt.length}, ${rec.w}–${rec.l}`:"Ещё не встречались")),
+      sec("Любимые карты",o.favMaps), sec("Привычки на T",o.tNotes), sec("Привычки на CT",o.ctNotes), sec("Ключевые игроки",o.players), sec("Заметки",o.notes),
+      ![o.favMaps,o.tNotes,o.ctNotes,o.players,o.notes].some(Boolean) ? h("p",{class:"muted",style:"margin:0"},"Досье пустое. Нажмите «Редактировать», чтобы записать, что знаете о команде.") : null,
+      h("section",{class:"sec"}, h("h3",{},"История встреч"), mt.length ? h("div",{class:"matches"}, mt.map(({t,m})=>h("div",{class:"mrow"},
+        h("div",{style:"min-width:0"}, h("button",{class:"opp",onclick:()=>openTournament(t.id)},t.name), h("div",{class:"meta"},[fmtDT(m.date)||fmtD(t.start), m.maps].filter(Boolean).join(" · "))),
+        h("div",{class:"mono"},m.score||""),
+        h("div",{class:"r"}, m.outcome==="win"?h("span",{class:"chip good"},"Победа"):m.outcome==="loss"?h("span",{class:"chip bad"},"Поражение"):h("span",{class:"chip s-plan"},"Не играли"), ext(m.demo,"Демка"))))) : h("p",{class:"muted",style:"margin:0"},"Добавьте эту команду соперником в турнир, и встречи появятся здесь.")),
+    ];
+    const used = mt.length>0;
+    const actions = state.canWrite&&!state.offline ? [used ? null : confirmBtn("Удалить",async()=>{ if(await del("opponents",id)){ closeModal(); toast("Команда удалена"); } }), h("button",{class:"btn",onclick:()=>opponentForm(o)},"Редактировать")].filter(Boolean) : [];
+    return [o.name, body, actions];
+  };
+  const r=build(); if(!r) return;
+  openModal(r[0], r[1].filter(Boolean), r[2], "detail", ()=>{ const n=build(); if(!n) return; const mod=document.querySelector(".modal"); if(!mod) return; mod.querySelector(".m-head h2").textContent=n[0]; mod.querySelector(".m-body").replaceChildren(...n[1].filter(Boolean)); const f=mod.querySelector(".m-foot"); if(f) f.replaceChildren(...n[2]); });
+}
+
+/* ---------- boot ---------- */
+const SB_URL = "https://cgzjoydztscjeledizje.supabase.co";
+const SB_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNnempveWR6dHNjamVsZWRpemplIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTI1MDA0NDAsImV4cCI6MjEwODA3NjQ0MH0.kt87RUqfQulmotc35oX9agcCaYnyV4-bdIqnXFx0DC0";
+const TEAM_EMAIL = "team@shtab.app";
+const sb = window.supabase.createClient(SB_URL, SB_KEY);
+const rid32 = () => (crypto.randomUUID ? crypto.randomUUID() : String(Date.now())+Math.random()).replace(/[^a-z0-9]/gi,"").slice(0,32);
+function blobUrl(id){ return SB_URL + "/storage/v1/object/public/shots/" + encodeURIComponent(id); }
+
+function makeDb(){
+  const listeners = {}, cache = {}, loaded = {};
+  const snapOf = col => ({docs:[...(cache[col]||new Map()).entries()].map(([id,data])=>({id, exists:true, data:()=>data}))});
+  const emit = col => (listeners[col]||new Set()).forEach(f=>f(snapOf(col)));
+  const err = e => ({code: e && (e.code==="42501" || e.status===401 || e.status===403 || /row-level security|JWT/i.test(e.message||"")) ? "invalid_argument" : "unavailable", message: e && e.message});
+  sb.channel("docs-live").on("postgres_changes",{event:"*",schema:"public",table:"docs"}, p=>{
+    const row = (p.new && p.new.collection) ? p.new : p.old;
+    if(!row || !row.collection || !cache[row.collection]) return;
+    if(p.eventType==="DELETE") cache[row.collection].delete(row.id); else cache[row.collection].set(row.id, p.new.data);
+    emit(row.collection);
+  }).subscribe();
+  async function load(col){
+    const {data, error} = await sb.from("docs").select("id,data").eq("collection",col).limit(5000);
+    if(error) throw error;
+    cache[col] = new Map(data.map(r=>[r.id, r.data])); loaded[col] = true; emit(col);
+  }
+  function collectionRef(col){
+    return {
+      doc(id){ return docRef(col, id || rid32()); },
+      onSnapshot(fn, onErr){
+        (listeners[col] ||= new Set()).add(fn);
+        if(!(col in cache)){ cache[col] = new Map(); load(col).catch(e=>{ onErr && onErr(err(e)); }); }
+        else if(loaded[col]) fn(snapOf(col));
+        return () => listeners[col].delete(fn);
+      }
+    };
+  }
+  function docRef(col, id){
+    return {
+      id,
+      async set(data){
+        const {error} = await sb.from("docs").upsert({collection:col, id, data, updated_at:new Date().toISOString()});
+        if(error) throw err(error);
+        (cache[col] ||= new Map()).set(id, data); emit(col);
+      },
+      async delete(){
+        const {error} = await sb.from("docs").delete().eq("collection",col).eq("id",id);
+        if(error) throw err(error);
+        cache[col]?.delete(id); emit(col);
+      },
+      onSnapshot(fn, onErr){
+        return collectionRef(col).onSnapshot(()=>{ const d = cache[col]?.get(id); fn(d ? {exists:true, data:()=>d} : {exists:false, data:()=>undefined}); }, onErr);
+      }
+    };
+  }
+  return {collection:collectionRef, doc:path=>{ const [c,i] = path.split("/"); return docRef(c,i); }};
+}
+const assetsApi = {
+  async upload(blob, opts){
+    const id = rid32();
+    const {error} = await sb.storage.from("shots").upload(id, blob, {contentType:(opts&&opts.type) || blob.type || "image/jpeg", cacheControl:"31536000"});
+    if(error) throw {code: /size|large|exceed/i.test(error.message||"") ? "too_large" : /mime|type/i.test(error.message||"") ? "unsupported_type" : "upstream_error", message:error.message};
+    return {id, url:blobUrl(id)};
+  }
+};
+
+function showLogin(msg){
+  document.getElementById("tabs").replaceChildren();
+  const pw = h("input",{id:"login-pw",type:"password",autocomplete:"current-password",placeholder:"Пароль команды","aria-label":"Пароль команды"});
+  const btn = h("button",{class:"btn primary",type:"submit"},"Войти");
+  const form = h("form",{class:"login"},
+    h("b",{class:"login-t"},"Вход в штаб"),
+    h("span",{class:"muted"},"Введите пароль команды. Устройство запомнит его, и в следующий раз вводить не придётся."),
+    pw, btn, msg ? h("span",{class:"login-err"},msg) : null);
+  form.addEventListener("submit", async e=>{
+    e.preventDefault(); if(!pw.value) return;
+    btn.disabled = true; btn.textContent = "Проверяю…";
+    const {error} = await sb.auth.signInWithPassword({email:TEAM_EMAIL, password:pw.value});
+    if(error){ showLogin(/invalid|credentials/i.test(error.message) ? "Неверный пароль. Спросите его у капитана." : "Не получилось войти. Проверьте интернет и попробуйте ещё раз."); return; }
+    start();
+  });
+  document.getElementById("main").replaceChildren(form);
+  pw.focus();
+}
+
+function maybeOfferImport(){
+  if(state.tournaments.length || state.strats.length || state.opponents.length) return;
+  const file = h("input",{type:"file",accept:"application/json,.json",hidden:true,"aria-label":"Файл с данными"});
+  const btn = h("button",{class:"btn primary",onclick:()=>file.click()},"Выбрать файл");
+  const bar = h("div",{class:"banner import"}, h("span",{},"База пока пустая. Если у вас есть файл с данными из старой версии сайта (shtab-export.json), загрузите его сюда."), file, btn);
+  file.addEventListener("change", async()=>{
+    const f = file.files[0]; if(!f) return;
+    btn.disabled = true;
+    try{
+      const bundle = JSON.parse(await f.text());
+      const shots = bundle.shots || {};
+      let i = 0; const ids = Object.keys(shots);
+      for(const id of ids){
+        btn.textContent = `Скрины ${++i}/${ids.length}…`;
+        const blob = await (await fetch(shots[id])).blob();
+        const {error} = await sb.storage.from("shots").upload(id, blob, {contentType: blob.type || "image/png", upsert:true});
+        if(error) throw error;
+      }
+      btn.textContent = "Записи…";
+      const rows = [];
+      for(const [col, docs] of Object.entries(bundle.collections||{})) for(const [id, data] of Object.entries(docs)) rows.push({collection:col, id, data, updated_at:new Date().toISOString()});
+      const {error} = await sb.from("docs").upsert(rows);
+      if(error) throw error;
+      toast("Данные перенесены"); setTimeout(()=>location.reload(), 800);
+    }catch(e){ btn.disabled=false; btn.textContent="Выбрать файл"; file.value=""; toast("Перенос не удался: "+((e&&e.message)||"ошибка")); }
+  });
+  document.getElementById("main").prepend(bar);
+}
+
+document.getElementById("logout").addEventListener("click", async()=>{ await sb.auth.signOut(); location.reload(); });
+let started = false;
+function start(){
+  if(started) return; started = true;
+  document.getElementById("logout").hidden = false;
+  const db = makeDb();
+  state.db = db; state.assets = assetsApi; state.canWrite = true; state.offline = false;
+  render();
+  let pending = 3;
+  const sub = (col,key) => db.collection(col).onSnapshot(snap=>{
+    state[col] = snap.docs.map(d=>({id:d.id,...d.data()}));
+    const first = !state.loaded[key]; state.loaded[key]=true; render(); refreshDetail();
+    if(first && --pending===0) maybeOfferImport();
+  }, e=>{ state.loaded[key]=true; render(); if(e.code==="invalid_argument"){ sb.auth.signOut(); started=false; showLogin("Сессия устарела, войдите заново."); } });
+  sub("tournaments","t"); sub("strats","s"); sub("opponents","o");
+  db.doc("settings/maps").onSnapshot(s=>{ const dt = s.exists ? s.data() : null; if(!dt) return; if(Array.isArray(dt.maps) && dt.maps.length) state.maps=dt.maps.slice(); if(dt.zones && typeof dt.zones==="object") state.zones=dt.zones; if(state.tab==="strats" && !state.modal) render(); }, ()=>{});
+}
+(async()=>{
+  const {data} = await sb.auth.getSession();
+  if(data && data.session) start(); else showLogin();
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,14 @@
+name: Keep database awake
+on:
+  schedule:
+    - cron: "17 6 */3 * *"
+  workflow_dispatch:
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping Supabase
+        env:
+          URL: https://cgzjoydztscjeledizje.supabase.co
+          KEY: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNnempveWR6dHNjamVsZWRpemplIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTI1MDA0NDAsImV4cCI6MjEwODA3NjQ0MH0.kt87RUqfQulmotc35oX9agcCaYnyV4-bdIqnXFx0DC0
+        run: curl -fsS "$URL/rest/v1/docs?select=id&limit=1" -H "apikey: $KEY" -H "Authorization: Bearer $KEY"

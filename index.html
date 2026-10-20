@@ -196,6 +196,31 @@ details.past>summary{cursor:pointer;color:var(--muted);font-weight:600;margin-bo
 .maps{display:flex;flex-wrap:wrap;gap:6px}
 .mapbtn{border:1px solid var(--line);background:var(--surface);border-radius:99px;padding:4px 12px;cursor:pointer;font-size:13px;font-weight:600}
 .mapbtn[aria-pressed="true"]{border-color:var(--accent);color:var(--accent);box-shadow:inset 0 0 0 1px var(--accent)}
+.mapdd{position:relative;margin-right:auto}
+.bar h1:has(+.mapdd){margin-right:6px}
+.mapdd-cur{display:flex;align-items:center;gap:8px;border:1px solid var(--line);background:var(--surface);border-radius:8px;padding:7px 14px;cursor:pointer;font-size:15px;font-weight:700;color:var(--ink)}
+.mapdd-n{font-size:11px}
+.mapdd-caret{transition:transform .2s;color:var(--muted)}
+.mapdd-list{position:absolute;top:100%;left:0;z-index:20;min-width:200px;margin-top:4px;padding:6px;display:flex;flex-direction:column;background:var(--surface);border:1px solid var(--line);border-radius:8px;box-shadow:0 12px 30px rgba(0,0,0,.18);opacity:0;visibility:hidden;transform:translateY(-6px);transition:opacity .18s,transform .18s,visibility 0s .18s}
+.mapdd-list::before{content:"";position:absolute;left:0;right:0;top:-8px;height:8px}
+.mapdd:hover .mapdd-list,.mapdd.open .mapdd-list,.mapdd:focus-within .mapdd-list{opacity:1;visibility:visible;transform:none;transition:opacity .18s,transform .18s}
+.mapdd:hover .mapdd-caret,.mapdd.open .mapdd-caret{transform:rotate(180deg)}
+.mapdd-list button{display:flex;justify-content:space-between;align-items:center;gap:12px;border:0;background:none;padding:7px 10px;border-radius:6px;cursor:pointer;font-weight:600;font-size:14px;text-align:left;color:var(--ink)}
+.mapdd-list button:hover{background:var(--surface-2)}
+.mapdd-list button[aria-checked="true"]{color:var(--accent)}
+.scols{display:grid;grid-template-columns:1fr 1fr;gap:20px;align-items:start}
+.scol{display:flex;flex-direction:column;gap:14px;min-width:0;padding-top:12px;border-top:3px solid var(--t)}
+.scol.CT{border-top-color:var(--ct)}
+.scol-head{display:flex;align-items:center;gap:8px;font-size:16px}
+.scol .grid{grid-template-columns:repeat(auto-fill,minmax(220px,1fr))}
+.rgroup{display:flex;flex-direction:column;gap:8px}
+.rgroup-h{display:flex;align-items:center;gap:8px;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--muted)}
+.rgroup-h::after{content:"";flex:1;height:1px;background:var(--line)}
+.scol-none{margin:0;font-size:13px}
+.add-cell{display:flex;align-items:center;justify-content:center;gap:10px;min-height:72px;border:1.5px dashed var(--line);border-radius:8px;background:none;color:var(--muted);cursor:pointer;font-weight:600;font-size:14px}
+.add-cell:hover{border-color:var(--accent);color:var(--accent)}
+.add-plus{font-size:24px;line-height:1}
+@media (max-width:760px){ .scols{grid-template-columns:1fr} }
 .search{flex:1 1 200px;min-width:0;padding:8px 12px;border:1px solid var(--line);border-radius:6px;background:var(--surface)}
 .filters select{padding:7px 10px;border:1px solid var(--line);border-radius:6px;background:var(--surface)}
 
@@ -352,7 +377,7 @@ const DEFAULT_ZONES = {
   Train:["Ivy","T Connector","Popdog","Lower","Upper","B Halls","Ladder","A Site","B Site"]};
 const TSTATUS = {planned:["Планируем","s-plan"],registered:["Заявились","s-reg"],playing:["Играем","s-live"],done:["Завершён","s-done"]};
 const FORM_STAGES = {rebuild:"Обкатка состава",building:"Набираем форму",peak:"Пик формы"};
-const ROUND_TYPES = {pistol:"Пистолетка",eco:"Эко",force:"Форс",full:"Фулл-бай"};
+const ROUND_TYPES = {pistol:"Пистолетка",eco:"Эко",force:"Форс",antiforce:"Антифорс",full:"Фулл-бай"};
 const ROLES = [["igl","IGL"],["awp","AWP"],["entry","Энтри"],["lurker","Люркер"],["support","Саппорт"]];
 const SSTATUS = {ready:"Отработана",wip:"В работе"};
 const OUTCOME = {"":"Ещё не играли",win:"Победа",loss:"Поражение"};
@@ -684,65 +709,76 @@ const branchHit = (b,zs) => zs.length>0 && zs.every(z=>(b.taken||[]).includes(z)
 function stratMatches(s){
   const f = state.sf;
   if(f.map && s.map!==f.map) return false;
-  if(f.side && s.side!==f.side) return false;
-  if(f.rt && s.roundType!==f.rt) return false;
   if(f.st && s.status!==f.st) return false;
-  if(f.zones.length && !(s.side==="T" && (s.branches||[]).some(b=>branchHit(b,f.zones)))) return false;
+  if(f.zones.length && s.side==="T" && !(s.branches||[]).some(b=>branchHit(b,f.zones))) return false;
   if(f.q && !stratText(s).includes(f.q.toLowerCase())) return false;
   return true;
 }
+function mapPicker(){
+  const f = state.sf;
+  const cnt = v => v ? state.strats.filter(s=>s.map===v).length : state.strats.length;
+  const pick = v => { f.map=v; f.zones=[]; render(); };
+  const box = h("div",{class:"mapdd"});
+  const cur = h("button",{class:"mapdd-cur",type:"button","aria-haspopup":"true","aria-expanded":"false",onclick:()=>{ const o=!box.classList.contains("open"); box.classList.toggle("open",o); cur.setAttribute("aria-expanded",String(o)); }},
+    h("span",{},f.map||"Все карты"), h("span",{class:"mono muted mapdd-n"},cnt(f.map)), h("span",{class:"mapdd-caret","aria-hidden":"true"},"▾"));
+  const list = h("div",{class:"mapdd-list",role:"menu"}, [["","Все карты"],...state.maps.map(m=>[m,m])].map(([v,l])=>
+    h("button",{type:"button",role:"menuitemradio","aria-checked":String(f.map===v),onclick:()=>pick(v)}, h("span",{},l), h("span",{class:"mono muted mapdd-n"},cnt(v)))));
+  box.addEventListener("mouseleave",()=>{ box.classList.remove("open"); cur.setAttribute("aria-expanded","false"); });
+  box.append(cur, list);
+  return box;
+}
 function viewStrats(){
   const f = state.sf;
-  const out = [h("div",{class:"bar"}, h("h1",{},"Стратбук"),
-    state.canWrite&&!state.offline ? h("button",{class:"btn ghost",onclick:mapsForm},"Карты и зоны") : null,
-    addBtn("Страта",()=>stratForm()))];
+  const out = [h("div",{class:"bar"}, h("h1",{},"Стратбук"), mapPicker(),
+    state.canWrite&&!state.offline ? h("button",{class:"btn ghost",onclick:mapsForm},"Карты и зоны") : null)];
   const search = h("input",{class:"search",id:"s-q",type:"search",placeholder:"Поиск по названию, тегам, ролям, доигровкам","aria-label":"Поиск страт"}); search.value=f.q;
   search.addEventListener("input",()=>{ f.q=search.value; const g=document.getElementById("s-grid"); if(g) g.replaceWith(stratGrid()); });
-  const seg = (k,opts) => h("div",{class:"seg",role:"group"}, opts.map(([v,l])=>h("button",{"aria-pressed":String(f[k]===v),onclick:()=>{f[k]=v; if(k==="side"&&v==="CT") f.zones=[]; render();}},l)));
-  const rt = sel("s-rt",f.rt,{"":"Любой тип раунда",...ROUND_TYPES}); rt.addEventListener("change",()=>{f.rt=rt.value;render();});
   const st = sel("s-st",f.st,{"":"Любой статус",...SSTATUS}); st.addEventListener("change",()=>{f.st=st.value;render();});
-  out.push(h("div",{class:"maps"}, [["","Все карты"],...state.maps.map(m=>[m,m])].map(([v,l])=>{
-    const n = v ? state.strats.filter(s=>s.map===v).length : state.strats.length;
-    return h("button",{class:"mapbtn","aria-pressed":String(f.map===v),onclick:()=>{f.map=v; f.zones=[]; render();}}, l, " ", h("span",{class:"mono muted",style:"font-size:11px"},n));
-  })));
-  out.push(h("div",{class:"filters"}, search, seg("side",[["","T и CT"],["T","T"],["CT","CT"]]), rt, st));
-  if(f.map && f.side!=="CT"){
+  out.push(h("div",{class:"filters"}, search, st));
+  if(f.map){
     const zs = zonesFor(f.map);
-    if(zs.length) out.push(h("div",{class:"zfilter"}, h("span",{class:"lbl"},"Что делаем, если забрали:"),
+    if(zs.length) out.push(h("div",{class:"zfilter"}, h("span",{class:"lbl"},"T: что делаем, если забрали:"),
       h("div",{class:"zones"}, zs.map(z=>h("button",{type:"button",class:"zone","aria-pressed":String(f.zones.includes(z)),onclick:()=>{ f.zones = f.zones.includes(z) ? f.zones.filter(x=>x!==z) : [...f.zones,z]; render(); }},z)),
         f.zones.length ? h("button",{type:"button",class:"btn ghost sm",onclick:()=>{f.zones=[];render();}},"Сбросить") : null)));
   }
   if(!state.loaded.s && !state.offline) return [...out, loading()];
-  if(!state.strats.length){
-    out.push(h("div",{class:"empty"}, h("b",{},"Стратбук пока пуст"), h("span",{},"Добавьте первую страту. Для T-стороны раунд делится на дефолт, развилки по забранным зонам и доигровки."), addBtn("Добавить первую страту",()=>stratForm())));
-    return out;
-  }
   out.push(stratGrid());
   return out;
 }
+function stratCard(s){
+  const zs = state.sf.zones;
+  const brs = s.branches||[];
+  const hits = zs.length ? brs.filter(b=>branchHit(b,zs)) : [];
+  let sub = s.call || null;
+  if(isTree(s)){
+    const bits = [];
+    if(s.default && s.default.until) bits.push("дефолт до "+s.default.until);
+    bits.push(brs.length ? `${brs.length} ${plural(brs.length,"развилка","развилки","развилок")}` : "развилок нет");
+    sub = hits.length ? "→ "+hits.map(b=>(b.finish&&b.finish.name)||"доигровка").join(", ") : bits.join(" · ");
+  }
+  const card = h("button",{class:"scard",onclick:e=>openStrat(s.id, e.currentTarget)},
+    state.sf.map ? null : h("div",{class:"row"}, h("span",{class:"map"},s.map||"Карта?")),
+    h("h3",{},s.name||"Без названия"),
+    sub ? h("p",{class:hits.length?"hitline":null},sub) : null,
+    h("div",{class:"foot"}, h("div",{class:"tags"},(s.tags||[]).slice(0,4).map(t=>h("span",{class:"tag"},"#"+t))), h("span",{class:"chip "+(s.status==="ready"?"good":"warn")},SSTATUS[s.status]||SSTATUS.wip)));
+  return h("div",{class:"scard-wrap"}, card,
+    state.canWrite&&!state.offline ? h("button",{class:"del-x",type:"button",title:"Удалить страту","aria-label":"Удалить страту «"+(s.name||"")+"»",onclick:e=>{ e.stopPropagation(); deleteStratAsk(s); }}, TRASH()) : null);
+}
 function stratGrid(){
   const order = m => { const i=state.maps.indexOf(m); return i<0?999:i; };
-  const zs = state.sf.zones;
-  const list = state.strats.filter(stratMatches).sort((a,b)=>order(a.map)-order(b.map) || (a.side||"").localeCompare(b.side||"") || (a.name||"").localeCompare(b.name||"","ru"));
-  if(!list.length) return h("div",{class:"empty",id:"s-grid"},h("b",{},"Ничего не нашлось"),h("span",{},zs.length?"Ни в одной страте нет развилки с этими зонами.":"Попробуйте сбросить фильтры."));
-  return h("div",{class:"grid",id:"s-grid"}, list.map(s=>{
-    const brs = s.branches||[];
-    const hits = zs.length ? brs.filter(b=>branchHit(b,zs)) : [];
-    let sub = s.call || null;
-    if(isTree(s)){
-      const bits = [];
-      if(s.default && s.default.until) bits.push("дефолт до "+s.default.until);
-      bits.push(brs.length ? `${brs.length} ${plural(brs.length,"развилка","развилки","развилок")}` : "развилок нет");
-      sub = hits.length ? "→ "+hits.map(b=>(b.finish&&b.finish.name)||"доигровка").join(", ") : bits.join(" · ");
-    }
-    const card = h("button",{class:"scard",onclick:e=>openStrat(s.id, e.currentTarget)},
-      h("div",{class:"row"}, h("span",{class:"side "+(s.side||"T")},s.side||"T"), h("span",{class:"map"},s.map||"Карта?"), h("span",{class:"tag",style:"margin-left:auto"},ROUND_TYPES[s.roundType]||"")),
-      h("h3",{},s.name||"Без названия"),
-      sub ? h("p",{class:hits.length?"hitline":null},sub) : null,
-      h("div",{class:"foot"}, h("div",{class:"tags"},(s.tags||[]).slice(0,4).map(t=>h("span",{class:"tag"},"#"+t))), h("span",{class:"chip "+(s.status==="ready"?"good":"warn")},SSTATUS[s.status]||SSTATUS.wip)));
-    return h("div",{class:"scard-wrap"}, card,
-      state.canWrite&&!state.offline ? h("button",{class:"del-x",type:"button",title:"Удалить страту","aria-label":"Удалить страту «"+(s.name||"")+"»",onclick:e=>{ e.stopPropagation(); deleteStratAsk(s); }}, TRASH()) : null);
-  }));
+  const list = state.strats.filter(stratMatches).sort((a,b)=>order(a.map)-order(b.map) || (a.name||"").localeCompare(b.name||"","ru"));
+  const types = Object.keys(ROUND_TYPES);
+  const canAdd = state.canWrite && !state.offline;
+  const col = side => {
+    const mine = list.filter(s=>(s.side||"T")===side);
+    const groups = [...types.map(k=>[ROUND_TYPES[k], mine.filter(s=>s.roundType===k)]), ["Без типа", mine.filter(s=>!ROUND_TYPES[s.roundType])]].filter(g=>g[1].length);
+    return h("section",{class:"scol "+side,"aria-label":side+"-сторона"},
+      h("div",{class:"scol-head"}, h("span",{class:"side "+side},side), h("b",{},side==="T"?"Атака":"Защита"), h("span",{class:"mono muted"},mine.length)),
+      groups.map(([l,arr])=>h("div",{class:"rgroup"}, h("div",{class:"rgroup-h"}, h("span",{},l), h("span",{class:"mono muted"},arr.length)), h("div",{class:"grid"}, arr.map(stratCard)))),
+      !mine.length && state.strats.some(s=>(s.side||"T")===side) ? h("p",{class:"muted scol-none"},"Ничего не нашлось. Попробуйте сбросить фильтры.") : null,
+      canAdd ? h("button",{class:"add-cell",type:"button","aria-label":"Новая "+side+"-страта",onclick:()=>stratForm(null, side)}, h("span",{class:"add-plus","aria-hidden":"true"},"+"), h("span",{},"Новая "+side+"-страта")) : null);
+  };
+  return h("div",{class:"scols",id:"s-grid"}, col("T"), col("CT"));
 }
 const NADES = {smoke:"Смок",flash:"Флешка",molotov:"Молотов",he:"HE",decoy:"Декой"};
 async function uploadShot(blob, row, setPrev, btn, label){
@@ -849,9 +885,9 @@ function branchEditor(b, getMap){
         field("Заметки", ta(p+"notes",f.notes,"",2)))));
   return box;
 }
-function stratForm(s){
+function stratForm(s, side){
   const isNew=!s;
-  s = s || {side:state.sf.side||"T",roundType:"full",status:"wip",map:state.sf.map||state.maps[0],roles:{},lineups:[],default:{roles:{}},branches:[]};
+  s = s || {side:side||"T",roundType:"full",status:"wip",map:state.sf.map||state.maps[0],roles:{},lineups:[],default:{roles:{}},branches:[]};
   const d = s.default||{};
   const mapOpts = Object.fromEntries(state.maps.map(m=>[m,m])); if(s.map && !mapOpts[s.map]) mapOpts[s.map]=s.map;
   const mapSel = sel("s-map",s.map,mapOpts), sideSel = sel("s-side",s.side,{T:"T",CT:"CT"});

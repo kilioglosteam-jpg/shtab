@@ -236,6 +236,10 @@ details.past>summary{cursor:pointer;color:var(--muted);font-weight:600;margin-bo
 .scard-wrap>.scard{flex:1}
 .del-x{position:absolute;top:-9px;right:-9px;width:30px;height:30px;border-radius:50%;border:2px solid var(--bg);background:var(--bad);color:#fff;display:grid;place-items:center;cursor:pointer;opacity:0;transform:scale(.8);transition:opacity .15s,transform .15s;box-shadow:0 2px 6px rgba(0,0,0,.25)}
 .scard-wrap:hover .del-x,.del-x:focus-visible{opacity:1;transform:none}
+.clone-x{position:absolute;top:-9px;right:26px;width:30px;height:30px;border-radius:50%;border:2px solid var(--bg);background:var(--accent);color:var(--accent-ink);display:grid;place-items:center;cursor:pointer;opacity:0;transform:scale(.8);transition:opacity .15s,transform .15s;box-shadow:0 2px 6px rgba(0,0,0,.25)}
+.clone-x.solo{right:-9px}
+.scard-wrap:hover .clone-x,.clone-x:focus-visible{opacity:1;transform:none}
+@media (hover:none){.clone-x{opacity:1;transform:none;width:28px;height:28px}}
 @media (hover:none){.del-x{opacity:1;transform:none;width:28px;height:28px}}
 .del-form{display:flex;flex-direction:column;gap:12px}
 .scard .row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
@@ -1086,7 +1090,8 @@ function stratCard(s, full, extra){
     extra || null,
     h("div",{class:"foot"}, h("div",{class:"tags"},(s.tags||[]).slice(0,4).map(t=>h("span",{class:"tag"},"#"+t))), commentsFor(s.id).length ? h("span",{class:"cm-n",title:"Комментарии"},"💬 "+commentsFor(s.id).length) : null, h("span",{class:"chip "+(s.status==="ready"?"good":"warn")},SSTATUS[s.status]||SSTATUS.wip)));
   return h("div",{class:"scard-wrap"}, card,
-    canEditStrat(s) ? h("button",{class:"del-x",type:"button",title:"Удалить страту","aria-label":"Удалить страту «"+(s.name||"")+"»",onclick:e=>{ e.stopPropagation(); deleteStratAsk(s); }}, TRASH()) : null);
+    canEditStrat(s) ? h("button",{class:"del-x",type:"button",title:"Удалить страту","aria-label":"Удалить страту «"+(s.name||"")+"»",onclick:e=>{ e.stopPropagation(); deleteStratAsk(s); }}, TRASH()) : null,
+    canWriteNow() ? h("button",{class:"clone-x"+(canEditStrat(s)?"":" solo"),type:"button",title:"Клонировать","aria-label":"Клонировать страту «"+(s.name||"")+"»",onclick:e=>{ e.stopPropagation(); cloneStrat(s); }}, COPY()) : null);
 }
 const addCell = (label, fn) => h("button",{class:"add-cell",type:"button",onclick:fn}, h("span",{class:"add-plus","aria-hidden":"true"},"+"), h("span",{},label));
 function stratGrid(){
@@ -1309,8 +1314,14 @@ function branchEditor(b, getMap){
         field("Заметки", ta(p+"notes",f.notes,"",2)))));
   return box;
 }
+function cloneStrat(s){
+  const {id, createdAt, updatedAt, confirmedAt, proposed, author, ...rest} = JSON.parse(JSON.stringify(s));
+  rest.name = (s.name||"Без названия")+" (копия)";
+  (rest.branches||[]).forEach(b=>{ const old = b.id; b.id = rid(); (rest.lineups||[]).forEach(l=>{ if(l.phase==="b:"+old) l.phase = "b:"+b.id; }); });
+  stratForm(rest);
+}
 function stratForm(s, side){
-  const isNew=!s;
+  const isNew = !s || !s.id;
   s = s || {side:side||"T",roundType:"full",status:"wip",map:state.sf.map||state.maps[0],roles:{},lineups:[],default:{roles:{}},branches:[]};
   const d = s.default||{};
   const mapOpts = Object.fromEntries(state.maps.map(m=>[m,m])); if(s.map && !mapOpts[s.map]) mapOpts[s.map]=s.map;
@@ -1757,6 +1768,8 @@ function roleCard(s, part, r, l, text, it){
   return text ? it(h("div",{class:"role-card"}, h("b",{},l), prose(text))) : null;
 }
 
+const COPY = () => { const ns="http://www.w3.org/2000/svg"; const svg=document.createElementNS(ns,"svg"); svg.setAttribute("viewBox","0 0 24 24"); svg.setAttribute("width","15"); svg.setAttribute("height","15"); svg.setAttribute("aria-hidden","true");
+  const p=document.createElementNS(ns,"path"); p.setAttribute("d","M8 3h11a2 2 0 0 1 2 2v11h-2V5H8V3zm-3 4h11a2 2 0 0 1 2 2v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V9a2 2 0 0 1 2-2zm0 2v11h11V9H5z"); p.setAttribute("fill","currentColor"); svg.append(p); return svg; };
 const TRASH = () => { const ns="http://www.w3.org/2000/svg"; const svg=document.createElementNS(ns,"svg"); svg.setAttribute("viewBox","0 0 24 24"); svg.setAttribute("width","16"); svg.setAttribute("height","16"); svg.setAttribute("aria-hidden","true");
   const p=document.createElementNS(ns,"path"); p.setAttribute("d","M9 3h6l1 2h4v2H4V5h4l1-2zm-3 6h12l-1 12H7L6 9zm4 2v8h2v-8h-2zm4 0v8h2v-8h-2z"); p.setAttribute("fill","currentColor"); svg.append(p); return svg; };
 async function verifyPw(password){
@@ -1778,7 +1791,8 @@ function deleteStratAsk(s){
     const error = await verifyPw(pw.value);
     if(error){ go.disabled=false; go.textContent="Удалить"; err.textContent = /invalid|credentials/i.test(error.message) ? "Неверный пароль." : "Не получилось проверить пароль, попробуйте ещё раз."; pw.select(); return; }
     if(await del("strats", s.id)){
-      const ids = (s.lineups||[]).map(l=>l.imageId).filter(Boolean);
+      const shared = new Set(state.strats.filter(x=>x.id!==s.id).flatMap(x=>(x.lineups||[]).map(l=>l.imageId)));
+      const ids = (s.lineups||[]).map(l=>l.imageId).filter(x=>x && !shared.has(x));
       if(ids.length) sb.storage.from("shots").remove(ids).catch(()=>{});
       for(const c of commentsFor(s.id)) del("comments", c.id);
       state.strats = state.strats.filter(x=>x.id!==s.id);

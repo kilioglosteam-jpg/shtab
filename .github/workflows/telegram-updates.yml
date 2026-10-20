@@ -4,16 +4,20 @@ on:
     branches: [main]
     paths: [index.html]
   workflow_dispatch:
+    inputs:
+      text:
+        description: "Свой текст (Telegram HTML). Пусто — отправить последнее изменение сайта"
+        required: false
 jobs:
   notify:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-        if: github.event_name == 'workflow_dispatch'
+        if: github.event_name == 'workflow_dispatch' && inputs.text == ''
         with:
           fetch-depth: 20
       - name: Последнее изменение сайта (ручной запуск)
-        if: github.event_name == 'workflow_dispatch'
+        if: github.event_name == 'workflow_dispatch' && inputs.text == ''
         run: |
           git log -1 --format=%B -- index.html | jq -Rs '{commits:[{message:.}]}' > "$RUNNER_TEMP/event.json"
           echo "EVENT_FILE=$RUNNER_TEMP/event.json" >> "$GITHUB_ENV"
@@ -22,8 +26,10 @@ jobs:
           TOKEN: ${{ secrets.TG_BOT_TOKEN }}
           CHAT: ${{ secrets.TG_CHAT_ID }}
           TOPIC: ${{ secrets.TG_TOPIC_UPDATES }}
+          CUSTOM: ${{ inputs.text }}
         run: |
           if [ -z "$TOKEN" ] || [ -z "$CHAT" ]; then echo "Секреты Telegram не заданы, пропускаю"; exit 0; fi
+          if [ -n "$CUSTOM" ]; then TEXT="$CUSTOM"; else
           TEXT=$(jq -r '
             def esc: gsub("&";"&amp;") | gsub("<";"&lt;") | gsub(">";"&gt;");
             [.commits[] | select(.message | test("\\[skip tg\\]") | not) | .message | split("\n")[0] | esc | "• " + .]
@@ -31,6 +37,7 @@ jobs:
                 "🆕 <b>Обновление платформы</b>\n" + join("\n")
                 + "\n<a href=\"https://kilioglosteam-jpg.github.io/shtab/\">Открыть сайт</a>" end
           ' "${EVENT_FILE:-$GITHUB_EVENT_PATH}")
+          fi
           [ -z "$TEXT" ] && { echo "Нечего отправлять"; exit 0; }
           BODY=$(jq -n --arg c "$CHAT" --arg t "$TEXT" --arg th "$TOPIC" \
             '{chat_id:$c, text:$t, parse_mode:"HTML", disable_web_page_preview:true}

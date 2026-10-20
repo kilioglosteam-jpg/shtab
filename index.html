@@ -202,6 +202,12 @@ details.past>summary{cursor:pointer;color:var(--muted);font-weight:600;margin-bo
 .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:12px}
 .scard{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:14px;cursor:pointer;text-align:left;display:flex;flex-direction:column;gap:8px;min-width:0}
 .scard:hover{border-color:var(--muted)}
+.scard-wrap{position:relative;display:flex;min-width:0}
+.scard-wrap>.scard{flex:1}
+.del-x{position:absolute;top:-9px;right:-9px;width:30px;height:30px;border-radius:50%;border:2px solid var(--bg);background:var(--bad);color:#fff;display:grid;place-items:center;cursor:pointer;opacity:0;transform:scale(.8);transition:opacity .15s,transform .15s;box-shadow:0 2px 6px rgba(0,0,0,.25)}
+.scard-wrap:hover .del-x,.del-x:focus-visible{opacity:1;transform:none}
+@media (hover:none){.del-x{opacity:1;transform:none;width:28px;height:28px}}
+.del-form{display:flex;flex-direction:column;gap:12px}
 .scard .row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
 .scard .map{font-family:var(--f-mono);font-size:12px;text-transform:uppercase;letter-spacing:.1em;color:var(--muted)}
 .scard h3{margin:0;font-size:16px}
@@ -729,11 +735,13 @@ function stratGrid(){
       bits.push(brs.length ? `${brs.length} ${plural(brs.length,"развилка","развилки","развилок")}` : "развилок нет");
       sub = hits.length ? "→ "+hits.map(b=>(b.finish&&b.finish.name)||"доигровка").join(", ") : bits.join(" · ");
     }
-    return h("button",{class:"scard",onclick:e=>openStrat(s.id, e.currentTarget)},
+    const card = h("button",{class:"scard",onclick:e=>openStrat(s.id, e.currentTarget)},
       h("div",{class:"row"}, h("span",{class:"side "+(s.side||"T")},s.side||"T"), h("span",{class:"map"},s.map||"Карта?"), h("span",{class:"tag",style:"margin-left:auto"},ROUND_TYPES[s.roundType]||"")),
       h("h3",{},s.name||"Без названия"),
       sub ? h("p",{class:hits.length?"hitline":null},sub) : null,
       h("div",{class:"foot"}, h("div",{class:"tags"},(s.tags||[]).slice(0,4).map(t=>h("span",{class:"tag"},"#"+t))), h("span",{class:"chip "+(s.status==="ready"?"good":"warn")},SSTATUS[s.status]||SSTATUS.wip)));
+    return h("div",{class:"scard-wrap"}, card,
+      state.canWrite&&!state.offline ? h("button",{class:"del-x",type:"button",title:"Удалить страту","aria-label":"Удалить страту «"+(s.name||"")+"»",onclick:e=>{ e.stopPropagation(); deleteStratAsk(s); }}, TRASH()) : null);
   }));
 }
 const NADES = {smoke:"Смок",flash:"Флешка",molotov:"Молотов",he:"HE",decoy:"Декой"};
@@ -1175,6 +1183,34 @@ function openOpponent(id){
 
 function roleCard(s, part, r, l, text, it){
   return text ? it(h("div",{class:"role-card"}, h("b",{},l), prose(text))) : null;
+}
+
+const TRASH = () => { const ns="http://www.w3.org/2000/svg"; const svg=document.createElementNS(ns,"svg"); svg.setAttribute("viewBox","0 0 24 24"); svg.setAttribute("width","16"); svg.setAttribute("height","16"); svg.setAttribute("aria-hidden","true");
+  const p=document.createElementNS(ns,"path"); p.setAttribute("d","M9 3h6l1 2h4v2H4V5h4l1-2zm-3 6h12l-1 12H7L6 9zm4 2v8h2v-8h-2zm4 0v8h2v-8h-2z"); p.setAttribute("fill","currentColor"); svg.append(p); return svg; };
+function deleteStratAsk(s){
+  const pw = inp("del-pw","","password","Пароль команды");
+  const err = h("p",{class:"login-err",style:"margin:0"});
+  const go = h("button",{class:"btn danger armed",type:"submit"},"Удалить");
+  const form = h("form",{class:"del-form"},
+    h("p",{style:"margin:0"},"Страта «"+(s.name||"Без названия")+"» и её скрины удалятся для всей команды. Вернуть их будет нельзя."),
+    field("Пароль команды", pw), err);
+  const submit = async e => {
+    e && e.preventDefault();
+    if(!pw.value){ pw.focus(); return; }
+    go.disabled = true; go.textContent = "Проверяю…"; err.textContent = "";
+    const {error} = await sb.auth.signInWithPassword({email:TEAM_EMAIL, password:pw.value});
+    if(error){ go.disabled=false; go.textContent="Удалить"; err.textContent = /invalid|credentials/i.test(error.message) ? "Неверный пароль." : "Не получилось проверить пароль, попробуйте ещё раз."; pw.select(); return; }
+    if(await del("strats", s.id)){
+      const ids = (s.lineups||[]).map(l=>l.imageId).filter(Boolean);
+      if(ids.length) sb.storage.from("shots").remove(ids).catch(()=>{});
+      state.strats = state.strats.filter(x=>x.id!==s.id);
+      closeModal(); render(); toast("Страта удалена");
+    } else { go.disabled=false; go.textContent="Удалить"; }
+  };
+  form.addEventListener("submit", submit);
+  go.addEventListener("click", submit);
+  openModal("Удалить страту?", [form], [h("button",{class:"btn ghost",type:"button",onclick:closeModal},"Отмена"), go]);
+  pw.focus();
 }
 
 /* ---------- boot ---------- */

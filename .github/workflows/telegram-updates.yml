@@ -1,0 +1,29 @@
+name: Telegram — обновления платформы
+on:
+  push:
+    branches: [main]
+    paths: [index.html]
+jobs:
+  notify:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Сообщение в тему «Обновления»
+        env:
+          TOKEN: ${{ secrets.TG_BOT_TOKEN }}
+          CHAT: ${{ secrets.TG_CHAT_ID }}
+          TOPIC: ${{ secrets.TG_TOPIC_UPDATES }}
+        run: |
+          if [ -z "$TOKEN" ] || [ -z "$CHAT" ]; then echo "Секреты Telegram не заданы, пропускаю"; exit 0; fi
+          TEXT=$(jq -r '
+            def esc: gsub("&";"&amp;") | gsub("<";"&lt;") | gsub(">";"&gt;");
+            [.commits[] | select(.message | test("\\[skip tg\\]") | not) | .message | split("\n")[0] | esc | "• " + .]
+            | if length == 0 then "" else
+                "🆕 <b>Обновление платформы</b>\n" + join("\n")
+                + "\n<a href=\"https://kilioglosteam-jpg.github.io/shtab/\">Открыть сайт</a>" end
+          ' "$GITHUB_EVENT_PATH")
+          [ -z "$TEXT" ] && { echo "Нечего отправлять"; exit 0; }
+          BODY=$(jq -n --arg c "$CHAT" --arg t "$TEXT" --arg th "$TOPIC" \
+            '{chat_id:$c, text:$t, parse_mode:"HTML", disable_web_page_preview:true}
+             + (if $th == "" then {} else {message_thread_id:($th|tonumber)} end)')
+          curl -fsS -X POST "https://api.telegram.org/bot$TOKEN/sendMessage" \
+            -H "Content-Type: application/json" -d "$BODY" > /dev/null

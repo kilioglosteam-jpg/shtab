@@ -351,6 +351,9 @@ details.past>summary{cursor:pointer;color:var(--muted);font-weight:600;margin-bo
 .dm-rc.brk{grid-column-start:1}
 .dm-dot{position:absolute;top:4px;right:4px;width:7px;height:7px;border-radius:50%;background:var(--good)}
 .dm-dot.bad{background:var(--warn)}
+.dm-addtag{border-style:dashed!important;color:var(--accent)!important}
+.dm-newwrap{display:inline-flex;gap:6px;align-items:center;flex-wrap:wrap}
+.dm-newtag{padding:5px 8px;border:1px solid var(--accent);border-radius:6px;background:var(--surface);min-width:260px;font:inherit;font-size:13px}
 .sp{position:relative;width:100%}
 .sp-btn{display:flex;align-items:center;gap:8px;width:100%;text-align:left;border:1px solid var(--line);background:var(--surface);border-radius:6px;padding:9px 12px;font:inherit;font-size:15px;color:var(--ink);cursor:pointer}
 .sp-btn:disabled{cursor:default;opacity:.8}
@@ -676,7 +679,7 @@ const ROLES = [["igl","IGL"],["awp","AWP"],["entry","Энтри"],["lurker","Л�
 const SSTATUS = {ready:"Отработана",wip:"В работе"};
 const OUTCOME = {"":"Ещё не играли",win:"Победа",loss:"Поражение"};
 
-const state = {tab:"calendar", tournaments:[], strats:[], opponents:[], events:[], comments:[], players:[], matches:[], reviewTags:[], rf:{n:"10",map:""}, maps:DEFAULT_MAPS.slice(),
+const state = {tab:"calendar", tournaments:[], strats:[], opponents:[], events:[], comments:[], players:[], matches:[], reviewTags:[], reviewtags:[], rf:{n:"10",map:""}, maps:DEFAULT_MAPS.slice(),
   db:null, assets:null, canWrite:true, loaded:{t:false,s:false,o:false,e:false,c:false,team:false}, offline:false,
   email:"", isCaptain:false, captainReady:false, captainName:"", me:"",
   sf:{q:"",map:"",side:"",rt:"",st:"",zones:[]}, zones:{}, oq:"", modal:null,
@@ -1544,7 +1547,7 @@ async function confirmStrat(s){
 
 /* ---------- demo review ---------- */
 const DEFAULT_TAGS = ["Не разменяли","Поздняя ротация","Слили гранаты","Проиграли клатч","Ошибка по экономике","Отдали ранний пик","+ Взяли ранний пик","+ Выиграли клатч"];
-const reviewTags = () => state.reviewTags.length ? state.reviewTags : DEFAULT_TAGS;
+const reviewTags = () => [...new Set([...(state.reviewTags.length ? state.reviewTags : DEFAULT_TAGS), ...state.reviewtags.slice().sort((a,b)=>(a.at||"").localeCompare(b.at||"")).map(x=>x.name).filter(Boolean)])];
 const isGood = t => /^\+/.test(t);
 const tagLabel = t => String(t).replace(/^\+\s*/,"");
 const roster = () => [...new Set([...(state.captainName?[state.captainName]:[]), ...state.players])];
@@ -1676,13 +1679,13 @@ function tagsForm(){
     const tags = [...new Set(t.value.split("\n").map(x=>x.trim()).filter(Boolean))];
     if(!tags.length){ toast("Нужен хотя бы один тег."); return; }
     save.disabled = true;
-    if(await put("settings","review",{tags})){ state.reviewTags = tags; toast("Теги сохранены"); closeModal(); render(); } else save.disabled = false;
+    if(await put("settings","review",{tags})){ state.reviewTags = tags; for(const x of state.reviewtags) del("reviewtags", x.id); state.reviewtags = []; toast("Теги сохранены"); closeModal(); render(); } else save.disabled = false;
   }},"Сохранить");
   openModal("Теги для разбора", [h("p",{class:"muted",style:"margin:0"},"Один тег в строке. Тег с плюсом в начале («+ Взяли ранний пик») считается удачным моментом и не попадает в статистику ошибок."), field("Теги", t, true)],
     [h("button",{class:"btn ghost",onclick:closeModal},"Отмена"), save]);
 }
 function openReview(id){
-  let cur = 0, m = null, saveT = 0, dirty = false;
+  let cur = 0, m = null, saveT = 0, dirty = false, addingTag = false;
   const load = () => { const x = state.matches.find(y=>y.id===id); if(!x) return false; if(!dirty) m = JSON.parse(JSON.stringify(x)); return true; };
   if(!load()) return;
   const can = canWriteNow();
@@ -1747,7 +1750,21 @@ function openReview(id){
         pickSeg(RT_ORDER.map(k=>[k,ROUND_TYPES[k]]), r.type, v=>change(()=>{ r.type=v; }), "Тип раунда")),
       field("Какую страту играли", stSel, true),
       h("div",{class:"field wide"}, h("span",{class:"lbl"},"Что произошло"),
-        h("div",{class:"dm-tagpick"}, reviewTags().map(t=>h("button",{type:"button",class:"zone"+(isGood(t)?" good":""),"aria-pressed":String(used.has(t)),disabled:can?null:true,onclick:()=>change(()=>{ r.tags = r.tags||[]; if(used.has(t)) r.tags = r.tags.filter(x=>x.tag!==t); else r.tags.push({tag:t, player:"", time:"", note:""}); })}, tagLabel(t)))),
+        h("div",{class:"dm-tagpick"}, reviewTags().map(t=>h("button",{type:"button",class:"zone"+(isGood(t)?" good":""),"aria-pressed":String(used.has(t)),disabled:can?null:true,onclick:()=>change(()=>{ r.tags = r.tags||[]; if(used.has(t)) r.tags = r.tags.filter(x=>x.tag!==t); else r.tags.push({tag:t, player:"", time:"", note:""}); })}, tagLabel(t))),
+          can ? (addingTag ? (()=>{
+            const ni = h("input",{type:"text",id:"dm-newtag",class:"dm-newtag",placeholder:"Новый тег, с «+» в начале — удачный момент",maxlength:"60","aria-label":"Новый тег"});
+            const go = async () => {
+              const name = ni.value.trim().replace(/^\+\s*/,"+ "); if(!name){ ni.focus(); return; }
+              const ex = reviewTags().find(x=>x.toLowerCase()===name.toLowerCase());
+              if(!ex){ const tid = newId("reviewtags"), doc = {name, author:state.me||"", at:new Date().toISOString()};
+                if(!(await put("reviewtags", tid, doc))) return; state.reviewtags = upsert(state.reviewtags, {id:tid, ...doc}); }
+              const t = ex || name; addingTag = false;
+              change(()=>{ const rr = R(); rr.tags = rr.tags||[]; if(!rr.tags.some(x=>x.tag===t)) rr.tags.push({tag:t, player:"", time:"", note:""}); });
+            };
+            ni.addEventListener("keydown", e=>{ if(e.key==="Enter"){ e.preventDefault(); go(); } else if(e.key==="Escape"){ e.preventDefault(); e.stopPropagation(); addingTag = false; redraw(); } });
+            setTimeout(()=>ni.focus());
+            return h("span",{class:"dm-newwrap"}, ni, h("button",{type:"button",class:"btn primary sm",onclick:go},"Добавить"), h("button",{type:"button",class:"btn ghost sm",onclick:()=>{ addingTag = false; redraw(); }},"Отмена"));
+          })() : h("button",{type:"button",class:"zone dm-addtag",onclick:()=>{ addingTag = true; redraw(); }},"+ Свой тег")) : null),
         tagRows.length ? h("div",{class:"dm-tags"}, tagRows) : null),
       shotsBox);
     if(can) panel.addEventListener("paste", e=>{
@@ -2266,7 +2283,7 @@ function start(){
   }, e=>{ state.loaded[key]=true; render(); if(e.code==="invalid_argument"){ sb.auth.signOut(); started=false; showLogin("Сессия устарела, войдите заново."); } });
   sub("tournaments","t"); sub("strats","s"); sub("opponents","o");
   const sub2 = (col,key) => db.collection(col).onSnapshot(snap=>{ state[col] = snap.docs.map(d=>({id:d.id,...d.data()})); state.loaded[key]=true; render(); refreshDetail(); }, ()=>{ state.loaded[key]=true; });
-  sub2("events","e"); sub2("comments","c"); sub2("matches","m");
+  sub2("events","e"); sub2("comments","c"); sub2("matches","m"); sub2("reviewtags","rt");
   db.doc("settings/review").onSnapshot(s=>{ const dt = s.exists ? s.data() : {}; state.reviewTags = Array.isArray(dt.tags) ? dt.tags : []; if(state.tab==="review" && !state.modal) render(); }, ()=>{});
   db.doc("settings/team").onSnapshot(s=>{
     const dt = s.exists ? s.data() : {}; const first = !state.loaded.team; state.loaded.team = true;

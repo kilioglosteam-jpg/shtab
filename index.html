@@ -1024,7 +1024,9 @@ function matchForm(t,m){
 /* ---------- strats ---------- */
 const rid = () => Math.random().toString(36).slice(2,9);
 const zonesFor = map => (state.zones[map] && state.zones[map].length) ? state.zones[map] : (DEFAULT_ZONES[map]||[]);
-const isTree = s => s.side==="T" && (s.default || (s.branches||[]).length);
+const isTree = s => !!(s.default || (s.branches||[]).length);
+// CT strats made before CT got the round tree keep their tasks in s.roles
+const defRoles = s => { const d = (s.default||{}).roles||{}; return Object.values(d).some(Boolean) ? d : (s.roles||{}); };
 function stratText(s){
   const parts=[s.name,s.call,(s.tags||[]).join(" "),...Object.values(s.roles||{})];
   const d=s.default||{}; parts.push(d.utility,d.notes,...Object.values(d.roles||{}));
@@ -1036,7 +1038,7 @@ function stratMatches(s){
   const f = state.sf;
   if(f.map && s.map!==f.map) return false;
   if(f.st && s.status!==f.st) return false;
-  if(f.zones.length && s.side==="T" && !(s.branches||[]).some(b=>branchHit(b,f.zones))) return false;
+  if(f.zones.length && !(s.branches||[]).some(b=>branchHit(b,f.zones))) return false;
   if(f.q && !stratText(s).includes(f.q.toLowerCase())) return false;
   return true;
 }
@@ -1063,7 +1065,7 @@ function viewStrats(){
   out.push(h("div",{class:"filters"}, search, st));
   if(f.map){
     const zs = zonesFor(f.map);
-    if(zs.length) out.push(h("div",{class:"zfilter"}, h("span",{class:"lbl"},"T: что делаем, если забрали:"),
+    if(zs.length) out.push(h("div",{class:"zfilter"}, h("span",{class:"lbl"},"Что делаем, если забрали:"),
       h("div",{class:"zones"}, zs.map(z=>h("button",{type:"button",class:"zone","aria-pressed":String(f.zones.includes(z)),onclick:()=>{ f.zones = f.zones.includes(z) ? f.zones.filter(x=>x!==z) : [...f.zones,z]; render(); }},z)),
         f.zones.length ? h("button",{type:"button",class:"btn ghost sm",onclick:()=>{f.zones=[];render();}},"Сбросить") : null)));
   }
@@ -1132,7 +1134,6 @@ function useBy(lus){ const u = mapRoles(()=>emptyInv()); for(const l of lus) if(
 const hasNades = s => ROLES.some(([r])=>invTotal(nadeInv(s.nades)[r])) || (s.lineups||[]).some(l=>l.who);
 function nadePlan(s){
   const inv = nadeInv(s.nades), lus = s.lineups||[], brs = s.branches||[], zero = mapRoles(()=>emptyInv());
-  if(s.side!=="T") return {inv, steps:[{key:"all", label:"За раунд", spent:zero, used:useBy(lus)}]};
   const brIds = new Set(brs.map(b=>"b:"+b.id));
   const defU = useBy(lus.filter(l=>!l.phase || l.phase==="default" || (l.phase.startsWith("b:") && !brIds.has(l.phase))));
   const steps = [{key:"default", label:"Дефолт", spent:zero, used:defU}];
@@ -1341,15 +1342,13 @@ function stratForm(s, side){
   const tBox = h("div",{class:"sub"},
     h("div",{class:"stage s1 wide"},"1 · Дефолт"),
     field("Держим дефолт до", inp("d-until",d.until,"text","1:20")), h("div"),
-    h("div",{class:"field wide"}, h("span",{class:"lbl"},"Кто какую зону берёт"), rolesInputs("d-r-", d.roles, true)),
+    h("div",{class:"field wide"}, h("span",{class:"lbl"},"Кто какую зону берёт"), rolesInputs("d-r-", defRoles(s), true)),
     d.utility ? field("Старая запись о гранатах (перенесите в «Раскидку» и очистите)", ta("d-util",d.utility,"",2), true) : null,
     field("Заметки к дефолту", ta("d-notes",d.notes,"",2), true),
     h("div",{class:"field wide"}, h("span",{class:"lbl"},"Развилки: для каждого варианта отметьте забранные зоны и распишите доигровку"), brList,
       h("div",{}, h("button",{type:"button",class:"btn sm",onclick:()=>brList.append(branchEditor(null,getMap))},"+ Развилка"))));
-  const cBox = h("div",{class:"sub"}, fset("Задачи игроков"), ROLES.map(([k,l])=>field(l, ta("s-r-"+k,(s.roles||{})[k],"",2), true)));
   let body;
-  const sync = () => { const t = sideSel.value==="T"; tBox.hidden=!t; cBox.hidden=t; if(body) body.classList.toggle("ct",!t); };
-  sideSel.addEventListener("change",sync);
+  const sync = () => {};
   body = h("div",{class:"form"},
     isNew && !isCap() ? h("p",{class:"muted",style:"grid-column:1/-1;margin:0;font-size:13px"},"Это будет предложение"+(state.me?" от "+state.me:"")+". Оно появится в стратбуке в блоке «Предложения», и капитан решит, брать ли его в тактики.") : null,
     field("Название", inp("s-name",s.name,"text","Например, Контроль мида"), true),
@@ -1357,7 +1356,7 @@ function stratForm(s, side){
     field("Тип раунда", sel("s-round",s.roundType,ROUND_TYPES)),
     field("Статус", sel("s-status",s.status,SSTATUS)),
     field("Когда вызываем", ta("s-call",s.call,"После двух проигранных раундов на A",2), true),
-    tBox, cBox,
+    tBox,
     fset("Гранаты по игрокам"),
     h("div",{class:"field wide"}, nEd, h("p",{class:"muted small",style:"margin:6px 0 0"},"Отметьте, кто что покупает. В «Раскидке» ниже укажите, кто кидает каждую гранату, и сайт посчитает остатки."), nSum),
     fset("Раскидка"),
@@ -1375,7 +1374,7 @@ function stratForm(s, side){
     const branches = [...brList.querySelectorAll(".br-ed")].map(x=>x.read()).filter(b=>b.taken.length||b.info||b.finish.name||b.finish.utility||b.finish.notes||Object.values(b.finish.roles).some(Boolean));
     const proposed = isNew ? !isCap() : (s.proposed===true && !approve);
     const doc = {name, map:val("s-map"), side:val("s-side"), roundType:val("s-round"), status:val("s-status"), call:val("s-call"),
-      roles:readRoles("s-r-"), default:{until:val("d-until"), roles:readRoles("d-r-"), utility:val("d-util"), notes:val("d-notes")}, branches, lineups,
+      roles:{}, default:{until:val("d-until"), roles:readRoles("d-r-"), utility:val("d-util"), notes:val("d-notes")}, branches, lineups,
       tags:val("s-tags").split(",").map(x=>x.trim()).filter(Boolean), nades:nEd.read(),
       proposed, author: s.author || (isNew ? state.me : "") || "", createdAt: s.createdAt || new Date().toISOString()};
     if(!proposed && s.proposed) doc.confirmedAt = new Date().toISOString();
@@ -1423,7 +1422,7 @@ function treeView(s){
 }
 function openStrat(id, fromEl){
   const s0 = state.strats.find(x=>x.id===id);
-  if(s0 && s0.side==="T"){ openRound(id, fromEl); return; }
+  if(s0){ openRound(id, fromEl); return; }
   const build = () => {
     const s = state.strats.find(x=>x.id===id); if(!s){ closeModal(); return null; }
     const roles = ROLES.filter(([k])=>(s.roles||{})[k]);
@@ -1604,7 +1603,7 @@ function openRound(id, fromEl, startStage){
 
     // 1 · default
     k=0;
-    const roleCards = ROLES.map(([r,l])=>roleCard(s,"default",r,l,d.roles&&d.roles[r],it)).filter(Boolean);
+    const dr = defRoles(s), roleCards = ROLES.map(([r,l])=>roleCard(s,"default",r,l,dr[r],it)).filter(Boolean);
     pages[0].replaceChildren(h("div",{class:"rv-in"},
       it(h("div",{class:"rv-kick s1"},"Часть 1 из 3 · Дефолт"+(d.until?" · держим до "+d.until:""))),
       s.call ? it(h("p",{class:"rv-lead"},s.call)) : null,

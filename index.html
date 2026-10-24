@@ -351,6 +351,19 @@ details.past>summary{cursor:pointer;color:var(--muted);font-weight:600;margin-bo
 .dm-rc.brk{grid-column-start:1}
 .dm-dot{position:absolute;top:4px;right:4px;width:7px;height:7px;border-radius:50%;background:var(--good)}
 .dm-dot.bad{background:var(--warn)}
+.sp{position:relative;width:100%}
+.sp-btn{display:flex;align-items:center;gap:8px;width:100%;text-align:left;border:1px solid var(--line);background:var(--surface);border-radius:6px;padding:9px 12px;font:inherit;font-size:15px;color:var(--ink);cursor:pointer}
+.sp-btn:disabled{cursor:default;opacity:.8}
+.sp-cur{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sp-caret{color:var(--muted)}
+.sp-rt{color:var(--muted);font-size:.9em}
+.sp-dot{color:var(--muted);margin:0 .45em;font-weight:700}
+.sp-list{position:absolute;z-index:30;left:0;right:0;top:calc(100% + 4px);max-height:320px;overflow:auto;background:var(--surface);border:1px solid var(--line);border-radius:6px;box-shadow:var(--shadow);padding:4px}
+.sp-g{font-family:var(--f-label);text-transform:uppercase;letter-spacing:.08em;font-size:12px;color:var(--muted);padding:8px 10px 4px}
+.sp-opt{display:flex;align-items:baseline;width:100%;text-align:left;border:0;background:none;padding:7px 10px;border-radius:4px;font:inherit;font-size:14px;color:var(--ink);cursor:pointer}
+.sp-opt:hover,.sp-opt:focus-visible{background:var(--surface-2);outline:none}
+.sp-opt.on{background:var(--ring)}
+.sp-ex{margin-left:auto;padding-left:12px;color:var(--muted);font-size:12px}
 .dm-pic{position:absolute;top:4px;left:4px;width:7px;height:6px;border-radius:1px;background:var(--accent)}
 .dm-shots{display:flex;flex-direction:column;gap:10px}
 .dm-shot{display:grid;grid-template-columns:340px minmax(0,1fr);gap:10px;align-items:start;background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:8px}
@@ -1593,6 +1606,24 @@ async function toTraining(tag, count){
   const {id, ...rest} = next; const tasks = [...(next.tasks||[]), task];
   if(await put("events", id, {...rest, tasks})){ state.events = upsert(state.events,{id,tasks}); toast("Добавлено в тренировку "+fmtD(next.date)+(next.time?" в "+next.time:"")); }
 }
+function stratPick(value, groups, onPick, disabled){
+  const label = x => [h("span",{class:"sp-rt"},(ROUND_TYPES[x.roundType]||"Без типа")), h("span",{class:"sp-dot","aria-hidden":"true"},"·"), h("span",{class:"sp-nm"},x.name||"Без названия")];
+  const all = groups.flatMap(g=>g[1]), cur = all.find(x=>x.id===value);
+  const wrap = h("div",{class:"sp"});
+  const btn = h("button",{type:"button",id:"dm-strat",class:"sp-btn","aria-haspopup":"listbox","aria-expanded":"false",disabled:disabled?true:null},
+    h("span",{class:"sp-cur"}, cur ? label(cur) : h("span",{class:"muted"},"Страту не отмечаем")), h("span",{class:"sp-caret","aria-hidden":"true"},"▾"));
+  const close = () => { list.hidden = true; btn.setAttribute("aria-expanded","false"); document.removeEventListener("pointerdown", outside, true); };
+  const outside = e => { if(!wrap.contains(e.target)) close(); };
+  const pick = v => { close(); onPick(v); };
+  const opt = (v, kids, extra) => h("button",{type:"button",role:"option","data-v":v,class:"sp-opt"+(v===(value||"")?" on":""),"aria-selected":String(v===(value||"")),onclick:()=>pick(v)}, kids, extra ? h("span",{class:"sp-ex"},extra) : null);
+  const list = h("div",{class:"sp-list",role:"listbox",hidden:true},
+    opt("", h("span",{class:"muted"},"Страту не отмечаем")),
+    groups.filter(g=>g[1].length).map(([g, items, ex])=>[h("div",{class:"sp-g"},g), items.map(x=>opt(x.id, label(x), ex && ex(x)))]));
+  wrap.addEventListener("keydown", e=>{ if(e.key==="Escape" && !list.hidden){ e.stopPropagation(); close(); btn.focus(); } });
+  btn.addEventListener("click",()=>{ if(!list.hidden) return close(); list.hidden = false; btn.setAttribute("aria-expanded","true"); document.addEventListener("pointerdown", outside, true); (list.querySelector(".sp-opt.on")||list.querySelector(".sp-opt")).focus(); });
+  wrap.append(btn, list);
+  return wrap;
+}
 function viewReview(){
   const f = state.rf;
   const out = [h("div",{class:"bar"}, h("h1",{},"Разбор демок"),
@@ -1667,11 +1698,8 @@ function openReview(id){
       h("span",{},i+1), (x.shots||[]).length ? h("i",{class:"dm-pic",title:"Есть скрины"}) : null, (x.tags||[]).length ? h("i",{class:"dm-dot"+((x.tags||[]).some(t=>!isGood(t.tag))?" bad":"")}) : null)));
     const strats = tactics().filter(x=>x.map===m.map && (x.side||"T")===r.side);
     const others = tactics().filter(x=>!(x.map===m.map && (x.side||"T")===r.side));
-    const stSel = h("select",{id:"dm-strat","aria-label":"Какую страту играли",disabled:can?null:true},
-      h("option",{value:""},"Страту не отмечаем"),
-      strats.length ? h("optgroup",{label:m.map+" · "+r.side}, strats.map(x=>h("option",{value:x.id},x.name))) : null,
-      others.length ? h("optgroup",{label:"Другие"}, others.map(x=>h("option",{value:x.id},(x.map||"")+" · "+(x.side||"")+" · "+x.name))) : null);
-    stSel.value = r.stratId || ""; stSel.addEventListener("change",()=>change(()=>{ r.stratId = stSel.value; const st = tactics().find(x=>x.id===r.stratId); if(st && !r.type && st.roundType) r.type = st.roundType; }));
+    const rtSort = arr => arr.slice().sort((a,b)=>RT_ORDER.indexOf(a.roundType)-RT_ORDER.indexOf(b.roundType) || (a.name||"").localeCompare(b.name||""));
+    const stSel = stratPick(r.stratId, [[m.map+" · "+r.side, rtSort(strats)], ["Другие", rtSort(others), x=>(x.map||"")+" "+(x.side||"")]], v=>change(()=>{ r.stratId = v; const st = tactics().find(x=>x.id===v); if(st && !r.type && st.roundType) r.type = st.roundType; }), !can);
     const players = roster();
     const tagRows = (r.tags||[]).map((t,j)=>{
       const pl = h("select",{"aria-label":"Игрок",disabled:can?null:true}, h("option",{value:""},"Кто?"), [...new Set([...players, ...(t.player?[t.player]:[])])].map(n=>h("option",{value:n},n))); pl.value = t.player||"";

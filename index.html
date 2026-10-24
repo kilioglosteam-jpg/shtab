@@ -351,6 +351,15 @@ details.past>summary{cursor:pointer;color:var(--muted);font-weight:600;margin-bo
 .dm-rc.brk{grid-column-start:1}
 .dm-dot{position:absolute;top:4px;right:4px;width:7px;height:7px;border-radius:50%;background:var(--good)}
 .dm-dot.bad{background:var(--warn)}
+.dm-pic{position:absolute;top:4px;left:4px;width:7px;height:6px;border-radius:1px;background:var(--accent)}
+.dm-shots{display:flex;flex-direction:column;gap:10px}
+.dm-shot{display:grid;grid-template-columns:340px minmax(0,1fr);gap:10px;align-items:start;background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:8px}
+.dm-img{display:block;aspect-ratio:4/3;border-radius:4px;overflow:hidden;background:var(--surface-2);cursor:zoom-in}
+.dm-img img{width:100%;height:100%;object-fit:contain;display:block}
+.dm-img.empty{display:grid;place-items:center;color:var(--muted);font-size:12px;cursor:default}
+.dm-shot-r{display:flex;flex-direction:column;gap:6px}
+.dm-shot-r textarea{width:100%;box-sizing:border-box;min-height:120px}
+.dm-addshot{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
 .dm-ot{display:flex;gap:8px}
 .dm-panel{display:flex;flex-direction:column;gap:12px;border:1px solid var(--line);border-radius:8px;padding:14px;background:var(--bg)}
 .dm-ph{display:flex;align-items:center;gap:10px}
@@ -370,7 +379,7 @@ details.past>summary{cursor:pointer;color:var(--muted);font-weight:600;margin-bo
 .tasks{display:flex;flex-direction:column;gap:6px}
 .task{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
 .task.done span:first-of-type{text-decoration:line-through;color:var(--muted)}
-@media (max-width:760px){ .dm-strip{grid-template-columns:repeat(6,minmax(0,1fr))} .dm-rc.brk{grid-column-start:auto} .dm-tag{grid-template-columns:1fr 1fr} .dm-tag b{grid-column:1/-1} .dm-line .seg{flex-wrap:wrap;max-width:100%} .wrrow{grid-template-columns:minmax(0,1fr) 120px} }
+@media (max-width:760px){ .dm-strip{grid-template-columns:repeat(6,minmax(0,1fr))} .dm-rc.brk{grid-column-start:auto} .dm-tag{grid-template-columns:1fr 1fr} .dm-tag b{grid-column:1/-1} .dm-line .seg{flex-wrap:wrap;max-width:100%} .dm-shot{grid-template-columns:1fr} .wrrow{grid-template-columns:minmax(0,1fr) 120px} }
 .lu-fields{display:flex;flex-direction:column;gap:6px;min-width:0}
 .lu-fields input{padding:6px 8px;border:1px solid var(--line);border-radius:6px;background:var(--bg);width:100%;min-width:0}
 .lu-actions{display:flex;flex-direction:column;gap:6px}
@@ -1655,7 +1664,7 @@ function openReview(id){
     const r = rs[cur] || {tags:[]};
     const strip = h("div",{class:"dm-strip"}, rs.map((x,i)=>h("button",{type:"button",class:"dm-rc "+(x.side||"")+(x.res==="w"?" w":x.res==="l"?" l":"")+(i===cur?" cur":"")+(i===12||i===24||(i>24&&(i-24)%6===0)?" brk":""),
       title:"Раунд "+(i+1)+(x.res==="w"?": выиграли":x.res==="l"?": проиграли":""), onclick:()=>{ cur=i; redraw(); }},
-      h("span",{},i+1), (x.tags||[]).length ? h("i",{class:"dm-dot"+((x.tags||[]).some(t=>!isGood(t.tag))?" bad":"")}) : null)));
+      h("span",{},i+1), (x.shots||[]).length ? h("i",{class:"dm-pic",title:"Есть скрины"}) : null, (x.tags||[]).length ? h("i",{class:"dm-dot"+((x.tags||[]).some(t=>!isGood(t.tag))?" bad":"")}) : null)));
     const strats = tactics().filter(x=>x.map===m.map && (x.side||"T")===r.side);
     const others = tactics().filter(x=>!(x.map===m.map && (x.side||"T")===r.side));
     const stSel = h("select",{id:"dm-strat","aria-label":"Какую страту играли",disabled:can?null:true},
@@ -1674,6 +1683,34 @@ function openReview(id){
         can ? h("button",{type:"button",class:"icon-btn",title:"Убрать тег","aria-label":"Убрать тег",onclick:()=>change(()=>{ r.tags.splice(j,1); })},"×") : null);
     });
     const used = new Set((r.tags||[]).map(t=>t.tag));
+    const ri = cur, R = () => m.rounds[ri];
+    const addImg = async (f, apply, btn) => {
+      if(!f || !state.assets) return;
+      const lbl = btn && btn.textContent; if(btn){ btn.disabled = true; btn.textContent = "Загружаю…"; }
+      try{ const x = await state.assets.upload(f, f.type ? undefined : {type:"image/jpeg"}); change(()=>apply(x.id)); }
+      catch(e){ toast(e&&e.code==="too_large"?"Файл слишком большой.":e&&e.code==="unsupported_type"?"Подходят только PNG, JPG, WebP или GIF.":"Не удалось загрузить картинку."); if(btn){ btn.disabled = false; btn.textContent = lbl; } }
+    };
+    const dropImg = id => { if(id) sb.storage.from("shots").remove([id]).catch(()=>{}); };
+    const picker = (label, apply, cls) => {
+      const file = h("input",{type:"file",accept:"image/png,image/jpeg,image/webp,image/gif",hidden:true,"aria-label":"Картинка"});
+      const b = h("button",{type:"button",class:cls||"btn ghost sm",onclick:()=>file.click()},label);
+      file.addEventListener("change",()=>{ const f = file.files[0]; file.value = ""; addImg(f, apply, b); });
+      return [file, b];
+    };
+    const shotsBox = h("div",{class:"field wide"}, h("span",{class:"lbl"},"Скрины и пометки"),
+      h("div",{class:"dm-shots"}, (r.shots||[]).map((sh,j)=>{
+        const ds = ta("dm-sh-"+cur+"-"+j, sh.text, "Что на скрине: где стояли, что пошло не так, как надо было", 3); if(!can) ds.disabled = true;
+        ds.addEventListener("input",()=>{ sh.text = ds.value; persist(); });
+        const img = sh.imageId ? h("a",{href:blobUrl(sh.imageId),target:"_blank",rel:"noopener",class:"dm-img",title:"Открыть в полном размере"}, h("img",{src:blobUrl(sh.imageId),alt:"Скрин к раунду "+(cur+1),loading:"lazy"})) : h("div",{class:"dm-img empty"},"Без картинки");
+        return h("div",{class:"dm-shot"}, img, h("div",{class:"dm-shot-r"}, ds,
+          can ? h("div",{class:"row",style:"gap:6px;flex-wrap:wrap"},
+            ...picker(sh.imageId ? "Заменить картинку" : "Добавить картинку", id=>{ const s2 = R().shots[j]; dropImg(s2.imageId); s2.imageId = id; }),
+            h("button",{type:"button",class:"btn ghost sm danger",onclick:()=>change(()=>{ const [x] = R().shots.splice(j,1); dropImg(x && x.imageId); })},"Удалить")) : null));
+      }),
+      can ? h("div",{class:"dm-addshot"},
+        ...picker("+ Скрин с описанием", id=>{ const rr = R(); rr.shots = rr.shots||[]; rr.shots.push({imageId:id, text:""}); }, "btn sm"),
+        h("button",{type:"button",class:"btn ghost sm",onclick:()=>change(()=>{ r.shots = r.shots||[]; r.shots.push({imageId:"", text:""}); })},"+ Только описание"),
+        h("span",{class:"muted small"},"Картинку можно вставить из буфера: Ctrl+V")) : null));
     const panel = h("section",{class:"dm-panel"},
       h("div",{class:"dm-ph"}, h("button",{type:"button",class:"btn ghost sm",disabled:cur?null:true,onclick:()=>{ cur--; redraw(); }},"←"), h("h3",{},"Раунд "+(cur+1)), h("button",{type:"button",class:"btn ghost sm",disabled:cur<rs.length-1?null:true,onclick:()=>{ cur++; redraw(); }},"→")),
       h("div",{class:"dm-line"},
@@ -1683,7 +1720,12 @@ function openReview(id){
       field("Какую страту играли", stSel, true),
       h("div",{class:"field wide"}, h("span",{class:"lbl"},"Что произошло"),
         h("div",{class:"dm-tagpick"}, reviewTags().map(t=>h("button",{type:"button",class:"zone"+(isGood(t)?" good":""),"aria-pressed":String(used.has(t)),disabled:can?null:true,onclick:()=>change(()=>{ r.tags = r.tags||[]; if(used.has(t)) r.tags = r.tags.filter(x=>x.tag!==t); else r.tags.push({tag:t, player:"", time:"", note:""}); })}, tagLabel(t)))),
-        tagRows.length ? h("div",{class:"dm-tags"}, tagRows) : null));
+        tagRows.length ? h("div",{class:"dm-tags"}, tagRows) : null),
+      shotsBox);
+    if(can) panel.addEventListener("paste", e=>{
+      const it = [...(e.clipboardData?.items||[])].find(x=>x.type.startsWith("image/"));
+      if(!it) return; e.preventDefault(); addImg(it.getAsFile(), id=>{ const rr = R(); rr.shots = rr.shots||[]; rr.shots.push({imageId:id, text:""}); });
+    });
     const oppN = ta("dm-oppnotes", m.oppNotes, "Что заметили у соперника: любимые выходы, где стоит AWP, как играют пистолетки", 3); if(!can) oppN.disabled = true;
     oppN.addEventListener("input",()=>{ m.oppNotes = oppN.value; persist(); });
     const notes = ta("dm-notes", m.notes, "Главные выводы по матчу", 3); if(!can) notes.disabled = true;
@@ -1698,7 +1740,7 @@ function openReview(id){
       panel,
       h("section",{class:"sec"}, h("h3",{},"О сопернике (попадёт в его досье)"), oppN),
       h("section",{class:"sec"}, h("h3",{},"Выводы"), notes)];
-    const actions = can ? [confirmBtn("Удалить матч",async()=>{ clearTimeout(saveT); if(await del("matches",id)){ state.matches = state.matches.filter(x=>x.id!==id); closeModal(); render(); toast("Матч удалён"); } }), h("button",{class:"btn",onclick:()=>reviewForm(state.matches.find(x=>x.id===id))},"Соперник, карта, ссылки")] : [];
+    const actions = can ? [confirmBtn("Удалить матч",async()=>{ clearTimeout(saveT); if(await del("matches",id)){ const ids = (m.rounds||[]).flatMap(x=>(x.shots||[]).map(y=>y.imageId)).filter(Boolean); if(ids.length) sb.storage.from("shots").remove(ids).catch(()=>{}); state.matches = state.matches.filter(x=>x.id!==id); closeModal(); render(); toast("Матч удалён"); } }), h("button",{class:"btn",onclick:()=>reviewForm(state.matches.find(x=>x.id===id))},"Соперник, карта, ссылки")] : [];
     return ["vs "+(m.opponentName||"Соперник"), body, actions];
   };
   const redraw = () => keepFocus(()=>{ const n = build(); const mod = document.querySelector(".modal"); if(!mod) return; mod.querySelector(".m-head h2").textContent = n[0]; mod.querySelector(".m-body").replaceChildren(...n[1].filter(Boolean)); const f = mod.querySelector(".m-foot"); if(f) f.replaceChildren(...n[2]); });

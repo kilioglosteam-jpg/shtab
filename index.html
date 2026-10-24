@@ -326,6 +326,51 @@ details.past>summary{cursor:pointer;color:var(--muted);font-weight:600;margin-bo
 .nsrow{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
 .nsrow>b{min-width:84px;font-size:14px}
 .nsrow.acts>b{color:var(--accent)}
+.dm-stats{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px}
+.dm-card{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:14px;display:flex;flex-direction:column;gap:8px;min-width:0}
+.dm-card h3{margin:0;font-family:var(--f-mono);font-size:12px;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);font-weight:600}
+.wrrow{display:grid;grid-template-columns:minmax(0,1fr) 150px;gap:10px;align-items:center;font-size:14px}
+.wrk{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.wrbar{position:relative;height:22px;background:var(--surface-2);border-radius:4px;overflow:hidden}
+.wrbar i{position:absolute;inset:0 auto 0 0;background:color-mix(in srgb,var(--good) 45%,transparent)}
+.wrbar span{position:relative;display:block;padding:0 8px;font-family:var(--f-mono);font-size:12px;line-height:22px;font-weight:600}
+.mist{display:flex;flex-direction:column;gap:6px}
+.mrow2{display:grid;grid-template-columns:minmax(0,1fr) auto auto auto;gap:8px;align-items:center;font-size:14px}
+.trend{font-size:12px;color:var(--muted);white-space:nowrap}
+.trend.up{color:var(--bad);font-weight:700} .trend.down{color:var(--good);font-weight:700}
+.scard .mono.win{color:var(--good);font-weight:700} .scard .mono.loss{color:var(--bad);font-weight:700}
+.wr{font-family:var(--f-mono);font-size:11px;font-weight:700;padding:1px 6px;border-radius:4px}
+.wr.up{color:var(--good);background:color-mix(in srgb,var(--good) 14%,transparent)} .wr.down{color:var(--bad);background:color-mix(in srgb,var(--bad) 12%,transparent)}
+.dm-stripwrap{display:flex;flex-direction:column;gap:8px}
+.dm-strip{display:grid;grid-template-columns:repeat(12,minmax(0,1fr));gap:4px}
+.dm-rc{position:relative;height:40px;border:1px solid var(--line);background:var(--surface);border-radius:5px;cursor:pointer;font-family:var(--f-mono);font-weight:700;font-size:13px;color:var(--muted);border-bottom:3px solid var(--line)}
+.dm-rc.T{border-bottom-color:var(--t)} .dm-rc.CT{border-bottom-color:var(--ct)}
+.dm-rc.w{background:color-mix(in srgb,var(--good) 22%,var(--surface));color:var(--good)}
+.dm-rc.l{background:color-mix(in srgb,var(--bad) 18%,var(--surface));color:var(--bad)}
+.dm-rc.cur{outline:2px solid var(--accent);outline-offset:1px;color:var(--ink)}
+.dm-rc.brk{grid-column-start:1}
+.dm-dot{position:absolute;top:4px;right:4px;width:7px;height:7px;border-radius:50%;background:var(--good)}
+.dm-dot.bad{background:var(--warn)}
+.dm-ot{display:flex;gap:8px}
+.dm-panel{display:flex;flex-direction:column;gap:12px;border:1px solid var(--line);border-radius:8px;padding:14px;background:var(--bg)}
+.dm-ph{display:flex;align-items:center;gap:10px}
+.dm-ph h3{margin:0;font-size:18px}
+.dm-line{display:flex;gap:8px;flex-wrap:wrap}
+.dm-panel select{padding:7px 10px;border:1px solid var(--line);border-radius:6px;background:var(--surface);width:100%}
+.dm-tagpick{display:flex;flex-wrap:wrap;gap:6px}
+.dm-tagpick .zone.good[aria-pressed="true"]{background:var(--good);border-color:var(--good)}
+.dm-tags{display:flex;flex-direction:column;gap:6px;margin-top:8px}
+.dm-tag{display:grid;grid-template-columns:150px 120px 80px auto minmax(0,1fr) auto;gap:6px;align-items:center;background:var(--surface);border:1px solid var(--line);border-left:3px solid var(--warn);border-radius:6px;padding:6px 8px}
+.dm-tag.good{border-left-color:var(--good)}
+.dm-tag b{font-size:13px}
+.modal.wide .sec textarea{width:100%;box-sizing:border-box}
+.dm-tag select,.dm-tag input{padding:5px 8px;border:1px solid var(--line);border-radius:6px;background:var(--bg);min-width:0;width:100%}
+.dm-notes{display:flex;flex-direction:column;gap:10px}
+.dm-note .prose{margin:4px 0 0}
+.tasks{display:flex;flex-direction:column;gap:6px}
+.task{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.task.done span:first-of-type{text-decoration:line-through;color:var(--muted)}
+@media (max-width:760px){ .dm-strip{grid-template-columns:repeat(6,minmax(0,1fr))} .dm-rc.brk{grid-column-start:auto} .dm-tag{grid-template-columns:1fr 1fr} .dm-tag b{grid-column:1/-1} .dm-line .seg{flex-wrap:wrap;max-width:100%} .wrrow{grid-template-columns:minmax(0,1fr) 120px} }
 .lu-fields{display:flex;flex-direction:column;gap:6px;min-width:0}
 .lu-fields input{padding:6px 8px;border:1px solid var(--line);border-radius:6px;background:var(--bg);width:100%;min-width:0}
 .lu-actions{display:flex;flex-direction:column;gap:6px}
@@ -609,7 +654,7 @@ const ROLES = [["igl","IGL"],["awp","AWP"],["entry","Энтри"],["lurker","Л�
 const SSTATUS = {ready:"Отработана",wip:"В работе"};
 const OUTCOME = {"":"Ещё не играли",win:"Победа",loss:"Поражение"};
 
-const state = {tab:"calendar", tournaments:[], strats:[], opponents:[], events:[], comments:[], players:[], maps:DEFAULT_MAPS.slice(),
+const state = {tab:"calendar", tournaments:[], strats:[], opponents:[], events:[], comments:[], players:[], matches:[], reviewTags:[], rf:{n:"10",map:""}, maps:DEFAULT_MAPS.slice(),
   db:null, assets:null, canWrite:true, loaded:{t:false,s:false,o:false,e:false,c:false,team:false}, offline:false,
   email:"", isCaptain:false, captainReady:false, captainName:"", me:"",
   sf:{q:"",map:"",side:"",rt:"",st:"",zones:[]}, zones:{}, oq:"", modal:null,
@@ -618,7 +663,7 @@ const state = {tab:"calendar", tournaments:[], strats:[], opponents:[], events:[
 try{ const t = localStorage.getItem("shtab.tab"); if(t && t!=="backlog") state.tab = t; }catch(e){}
 try{ const cm = localStorage.getItem("shtab.calmode"); if(cm==="list"||cm==="month") state.cal.mode = cm; }catch(e){}
 try{ state.me = localStorage.getItem("shtab.me") || ""; }catch(e){}
-if(["calendar","strats","opponents"].includes(location.hash.slice(1))) state.tab = location.hash.slice(1);
+if(["calendar","strats","review","opponents"].includes(location.hash.slice(1))) state.tab = location.hash.slice(1);
 
 /* ---------- helpers ---------- */
 function h(tag, attrs, ...kids){
@@ -707,7 +752,7 @@ function refreshDetail(){ if(state.modal && (state.modal.kind==="detail"||state.
 
 /* ---------- tabs ---------- */
 function renderTabs(){
-  const tabs = [["calendar","Календарь",state.tournaments.length+state.events.length],["strats","Стратбук",tactics().length],["opponents","Соперники",state.opponents.length]];
+  const tabs = [["calendar","Календарь",state.tournaments.length+state.events.length],["strats","Стратбук",tactics().length],["review","Разбор",state.matches.length],["opponents","Соперники",state.opponents.length]];
   document.getElementById("tabs").replaceChildren(...tabs.map(([k,l,n])=>h("button",{class:"tab",role:"tab","aria-selected":String(state.tab===k),onclick:()=>{state.tab=k; try{localStorage.setItem("shtab.tab",k);}catch(e){} render(); window.scrollTo(0,0);}}, l, h("span",{class:"n"},n))));
 }
 
@@ -724,6 +769,7 @@ function render(){
   if(state.offline) kids.push(h("div",{class:"banner"},"Общее хранилище недоступно в этом просмотре. Откройте страницу на claude.ai, войдя в аккаунт, чтобы видеть и добавлять данные команды."));
   else if(!state.canWrite) kids.push(h("div",{class:"banner"},"У вас доступ только на просмотр. Чтобы добавлять турниры и страты, попросите владельца выдать доступ «Участник»."));
   if(state.tab==="strats") kids.push(...viewStrats());
+  else if(state.tab==="review") kids.push(...viewReview());
   else if(state.tab==="opponents") kids.push(...viewOpponents());
   else kids.push(...viewCalendar());
   const act = document.activeElement, actId = act && m.contains(act) ? act.id : null, pos = actId && act.selectionStart;
@@ -860,7 +906,7 @@ function eCard(e){
     h("div",{class:"dblock"}, h("b",{}, d ? String(d.getDate()) : "—"), h("small",{}, d ? MON[d.getMonth()] : "дата?")),
     h("div",{style:"min-width:0"},
       h("p",{class:"tname"}, e.type==="solo" ? (evWho(e) || "Кто-то из игроков") : (e.title || "Командная тренировка")),
-      h("div",{class:"meta"}, [[e.time,e.until].filter(Boolean).join("–"), e.type==="solo" ? e.title : null].filter(Boolean).join(" · ") || "Время не указано")),
+      h("div",{class:"meta"}, [[e.time,e.until].filter(Boolean).join("–"), e.type==="solo" ? e.title : null, (e.tasks||[]).length ? "задач из разбора: "+e.tasks.length : null].filter(Boolean).join(" · ") || "Время не указано")),
     h("div",{class:"tright"}, h("span",{class:"chip ev-chip "+(e.type==="solo"?"solo":"team")}, EV_TYPES[e.type]||EV_TYPES.team)));
 }
 function addChooser(date){
@@ -878,8 +924,8 @@ function playersPicker(chosen){
   const box = h("div",{class:"pchks"}, names.map(n=>h("label",{class:"pchk"}, h("input",{type:"checkbox",value:n,checked:set.has(n)||null}), h("span",{},n))));
   return {el:box, read:()=>[...box.querySelectorAll("input:checked")].map(x=>x.value)};
 }
-function eventForm(e, type, date){
-  const isNew = !e; e = e || {type, date: date || ymd(new Date())};
+function eventForm(e, type, date, preset){
+  const isNew = !e; e = e || {type, date: date || ymd(new Date()), ...(preset||{})};
   const solo = e.type==="solo";
   const who = solo ? playersPicker(e.players || (state.me ? [state.me] : [])) : null;
   const body = h("div",{class:"form"},
@@ -893,7 +939,7 @@ function eventForm(e, type, date){
     const players = solo ? who.read() : [];
     if(solo && !players.length){ toast("Отметьте, кто тренируется."); return; }
     const id = e.id || newId("events");
-    const doc = {type:e.type, date:d, time:val("ev-time"), until:val("ev-until"), title:val("ev-title"), notes:val("ev-notes"), players, author:e.author||state.me||""};
+    const doc = {type:e.type, date:d, time:val("ev-time"), until:val("ev-until"), title:val("ev-title"), notes:val("ev-notes"), players, tasks:e.tasks||[], author:e.author||state.me||""};
     save.disabled = true;
     if(await put("events",id,doc)){ state.events = upsert(state.events,{id,...doc}); toast(isNew?"Добавлено в календарь":"Сохранено"); closeModal(); render(); }
     else save.disabled = false;
@@ -907,7 +953,10 @@ function openEvent(id){
       h("div",{class:"chips",style:"margin-top:0"}, h("span",{class:"chip ev-chip "+(e.type==="solo"?"solo":"team")}, EV_TYPES[e.type]||EV_TYPES.team)),
       h("dl",{class:"kv",style:"margin:0"},
         [["Дата",fmtD(e.date)],["Время",[e.time,e.until].filter(Boolean).join(" – ")],["Кто",e.type==="solo"?evWho(e):"Вся команда"],[e.type==="solo"?"Над чем работаем":"Тема",e.title]].filter(x=>x[1]).map(([k,v])=>h("div",{},h("dt",{},k),h("dd",{},v)))),
-      e.notes ? h("section",{class:"sec"}, h("h3",{},"Заметки"), prose(e.notes)) : null];
+      e.notes ? h("section",{class:"sec"}, h("h3",{},"Заметки"), prose(e.notes)) : null,
+      (e.tasks||[]).length ? h("section",{class:"sec"}, h("h3",{},"Задачи из разбора демок"), h("div",{class:"tasks"}, e.tasks.map((t,i)=>h("label",{class:"task"+(t.done?" done":"")},
+        h("input",{type:"checkbox",checked:t.done||null,disabled:canWriteNow()?null:true,onchange:async ev=>{ const tasks = e.tasks.map((x,j)=>j===i?{...x,done:ev.target.checked}:x); const {id:_, ...rest} = e; if(await put("events",id,{...rest,tasks})) state.events = upsert(state.events,{id,tasks}); }}),
+        h("span",{},t.text), t.count ? h("span",{class:"muted small"},"в разборах: "+t.count) : null)))) : null];
     const actions = canWriteNow() ? [confirmBtn("Удалить",async()=>{ if(await del("events",id)){ state.events=state.events.filter(x=>x.id!==id); closeModal(); render(); toast("Удалено из календаря"); } }), h("button",{class:"btn",onclick:()=>eventForm(e)},"Редактировать")] : [];
     return [e.type==="solo" ? "Личная тренировка" : (e.title||"Командная тренировка"), body, actions];
   };
@@ -1090,7 +1139,7 @@ function stratCard(s, full, extra){
     h("h3",{},s.name||"Без названия"),
     sub ? h("p",{class:hits.length?"hitline":null},sub) : null,
     extra || null,
-    h("div",{class:"foot"}, h("div",{class:"tags"},(s.tags||[]).slice(0,4).map(t=>h("span",{class:"tag"},"#"+t))), commentsFor(s.id).length ? h("span",{class:"cm-n",title:"Комментарии"},"💬 "+commentsFor(s.id).length) : null, h("span",{class:"chip "+(s.status==="ready"?"good":"warn")},SSTATUS[s.status]||SSTATUS.wip)));
+    h("div",{class:"foot"}, h("div",{class:"tags"},(s.tags||[]).slice(0,4).map(t=>h("span",{class:"tag"},"#"+t))), commentsFor(s.id).length ? h("span",{class:"cm-n",title:"Комментарии"},"💬 "+commentsFor(s.id).length) : null, (()=>{ const r = stratRecord(s.id); return r.n ? h("span",{class:"wr "+(r.pct>=50?"up":"down"),title:"Сыграли в разобранных матчах: "+r.w+" побед из "+r.n}, r.pct+"% · "+r.n) : null; })(), h("span",{class:"chip "+(s.status==="ready"?"good":"warn")},SSTATUS[s.status]||SSTATUS.wip)));
   return h("div",{class:"scard-wrap"}, card,
     canEditStrat(s) ? h("button",{class:"del-x",type:"button",title:"Удалить страту","aria-label":"Удалить страту «"+(s.name||"")+"»",onclick:e=>{ e.stopPropagation(); deleteStratAsk(s); }}, TRASH()) : null,
     canWriteNow() ? h("button",{class:"clone-x"+(canEditStrat(s)?"":" solo"),type:"button",title:"Клонировать","aria-label":"Клонировать страту «"+(s.name||"")+"»",onclick:e=>{ e.stopPropagation(); cloneStrat(s); }}, COPY()) : null);
@@ -1471,6 +1520,193 @@ async function confirmStrat(s){
   if(await put("strats",id,doc)){ state.strats = upsert(state.strats,{id,...doc}); toast("Подтверждено, теперь это тактика"); closeModal(); render(); }
 }
 
+/* ---------- demo review ---------- */
+const DEFAULT_TAGS = ["Не разменяли","Поздняя ротация","Слили гранаты","Проиграли клатч","Ошибка по экономике","Отдали ранний пик","+ Взяли ранний пик","+ Выиграли клатч"];
+const reviewTags = () => state.reviewTags.length ? state.reviewTags : DEFAULT_TAGS;
+const isGood = t => /^\+/.test(t);
+const tagLabel = t => String(t).replace(/^\+\s*/,"");
+const roster = () => [...new Set([...(state.captainName?[state.captainName]:[]), ...state.players])];
+const RT_ORDER = ["pistol","eco","force","antiforce","full"];
+const otherSide = x => x==="T" ? "CT" : "T";
+// MR12: sides swap after round 12; overtime is MR3 halves, starting on the side played at the end of regulation
+const sideFor = (i, first) => i<12 ? first : i<24 ? otherSide(first) : (Math.floor((i-24)/3)%2===0 ? otherSide(first) : first);
+const newRounds = (from, to, first) => Array.from({length:to-from},(_,k)=>{ const i=from+k; return {side:sideFor(i,first), res:"", type:(i===0||i===12)?"pistol":"", stratId:"", tags:[]}; });
+const dmScore = m => { const r = m.rounds||[]; const w = r.filter(x=>x.res==="w").length, l = r.filter(x=>x.res==="l").length; return (w||l) ? w+":"+l : ""; };
+const ytAt = (url, tc) => {
+  const u = safeUrl(url); if(!u) return null;
+  const p = String(tc||"").trim().split(":").map(Number); if(!p.length || p.some(isNaN)) return u;
+  const sec = p.reduce((a,b)=>a*60+b,0); if(!sec) return u;
+  if(/youtu\.?be/.test(u)) return u + (u.includes("?")?"&":"?") + "t=" + sec + "s";
+  if(/twitch\.tv\/videos/.test(u)) { const hh=Math.floor(sec/3600), mm=Math.floor(sec%3600/60), ss=sec%60; return u + (u.includes("?")?"&":"?") + "t=" + hh+"h"+mm+"m"+ss+"s"; }
+  return u;
+};
+function stratRecord(id){
+  let w=0, n=0;
+  for(const m of state.matches) for(const r of (m.rounds||[])) if(r.stratId===id && r.res){ n++; if(r.res==="w") w++; }
+  return {w, n, pct: n ? Math.round(w/n*100) : 0};
+}
+function reviewScope(){
+  const f = state.rf;
+  let list = state.matches.slice().sort((a,b)=>(b.date||"").localeCompare(a.date||""));
+  if(f.map) list = list.filter(m=>m.map===f.map);
+  if(f.n!=="all") list = list.slice(0, +f.n);
+  return list;
+}
+const pctBar = (w, n) => h("div",{class:"wrbar",title:w+" из "+n}, h("i",{style:"width:"+(n?Math.round(w/n*100):0)+"%"}), h("span",{}, (n?Math.round(w/n*100):0)+"% · "+w+"/"+n));
+function reviewStats(list){
+  const rounds = list.flatMap(m=>(m.rounds||[]).filter(r=>r.res).map(r=>({...r, map:m.map})));
+  if(!rounds.length) return h("p",{class:"muted",style:"margin:0"},"Статистика появится, когда в матчах будут отмечены выигранные и проигранные раунды.");
+  const group = key => { const g = {}; for(const r of rounds){ const k = key(r); if(!k) continue; (g[k] ||= {w:0,n:0}); g[k].n++; if(r.res==="w") g[k].w++; } return g; };
+  const rowsOf = (g, label, order) => Object.entries(g).sort((a,b)=> order ? order.indexOf(a[0])-order.indexOf(b[0]) : b[1].n-a[1].n).map(([k,v])=>h("div",{class:"wrrow"}, h("span",{class:"wrk"},label(k)), pctBar(v.w,v.n)));
+  const byStrat = group(r=>r.stratId);
+  const byType = group(r=>r.type), bySide = group(r=>r.side), byMap = group(r=>r.map);
+  // mistakes: rate per match, recent half vs older half
+  const half = Math.ceil(list.length/2), recent = list.slice(0,half), older = list.slice(half);
+  const countIn = ms => { const c = {}; for(const m of ms) for(const r of (m.rounds||[])) for(const t of (r.tags||[])) if(!isGood(t.tag)) c[t.tag] = (c[t.tag]||0)+1; return c; };
+  const all = countIn(list), cr = countIn(recent), co = countIn(older);
+  const top = Object.entries(all).sort((a,b)=>b[1]-a[1]).slice(0,6);
+  const trend = t => { if(!older.length) return null; const a = (cr[t]||0)/recent.length, b = (co[t]||0)/older.length; return a>b*1.15 ? h("span",{class:"trend up",title:"Чаще, чем раньше"},"↑ чаще") : a<b*0.85 ? h("span",{class:"trend down",title:"Реже, чем раньше"},"↓ реже") : h("span",{class:"trend",title:"Без изменений"},"="); };
+  const card = (title, kids) => h("section",{class:"dm-card"}, h("h3",{},title), kids);
+  return h("div",{class:"dm-stats"},
+    card("Тактики из стратбука", Object.keys(byStrat).length ? rowsOf(byStrat, k=>{ const st = state.strats.find(x=>x.id===k); return st ? st.name : "удалённая страта"; }) : h("p",{class:"muted small"},"Отмечайте в раундах, какую страту играли.")),
+    card("По типу раунда", Object.keys(byType).length ? rowsOf(byType, k=>ROUND_TYPES[k]||k, RT_ORDER) : h("p",{class:"muted small"},"Тип раунда не отмечен.")),
+    card("По сторонам и картам", [rowsOf(bySide, k=>k==="T"?"Атака (T)":"Защита (CT)", ["T","CT"]), state.rf.map ? null : rowsOf(byMap, k=>k)]),
+    card("Частые ошибки", top.length ? h("div",{class:"mist"}, top.map(([t,n])=>h("div",{class:"mrow2"},
+      h("span",{class:"wrk"}, tagLabel(t)), h("b",{class:"mono"}, n), trend(t),
+      canWriteNow() ? h("button",{class:"btn ghost sm",title:"Добавить задачу в ближайшую командную тренировку",onclick:()=>toTraining(t,n)},"В тренировку") : null))) : h("p",{class:"muted small"},"Ошибок пока не отмечено.")));
+}
+async function toTraining(tag, count){
+  const today = ymd(new Date());
+  const next = state.events.filter(e=>e.type!=="solo" && (e.date||"")>=today).sort(evSort)[0];
+  const task = {text:"Отработать: "+tagLabel(tag), tag, count, done:false};
+  if(!next){ toast("Ближайшей командной тренировки нет. Создайте её, задача уже внутри."); eventForm(null,"team",null,{title:"Тренировка", tasks:[task]}); return; }
+  if((next.tasks||[]).some(t=>t.tag===tag && !t.done)){ toast("Эта задача уже есть в тренировке "+fmtD(next.date)); return; }
+  const {id, ...rest} = next; const tasks = [...(next.tasks||[]), task];
+  if(await put("events", id, {...rest, tasks})){ state.events = upsert(state.events,{id,tasks}); toast("Добавлено в тренировку "+fmtD(next.date)+(next.time?" в "+next.time:"")); }
+}
+function viewReview(){
+  const f = state.rf;
+  const out = [h("div",{class:"bar"}, h("h1",{},"Разбор демок"),
+    canWriteNow() && isCap() ? h("button",{class:"btn ghost",onclick:tagsForm},"Теги ошибок") : null)];
+  if(!state.loaded.m && !state.offline) return [...out, loading()];
+  const nSeg = h("div",{class:"seg",role:"group","aria-label":"Сколько матчей"}, [["5","5 матчей"],["10","10 матчей"],["all","Все"]].map(([v,l])=>h("button",{"aria-pressed":String(f.n===v),onclick:()=>{ f.n=v; render(); }},l)));
+  const mapS = sel("rf-map", f.map, {"":"Все карты", ...Object.fromEntries(state.maps.map(m=>[m,m]))}); mapS.addEventListener("change",()=>{ f.map=mapS.value; render(); });
+  const list = reviewScope();
+  if(state.matches.length) out.push(h("div",{class:"filters"}, nSeg, mapS), reviewStats(list));
+  else out.push(h("p",{class:"muted",style:"margin:0;max-width:70ch"},"Добавьте матч, пройдитесь по раундам: отметьте результат, тип раунда, какую страту играли и что пошло не так. Из этого соберётся статистика по тактикам и частым ошибкам."));
+  const all = state.matches.slice().sort((a,b)=>(b.date||"").localeCompare(a.date||""));
+  out.push(h("div",{class:"month"},"Матчи"), h("div",{class:"grid"}, all.map(m=>{
+    const sc = dmScore(m), [w,l] = sc ? sc.split(":").map(Number) : [0,0];
+    const tags = (m.rounds||[]).reduce((a,r)=>a+(r.tags||[]).filter(t=>!isGood(t.tag)).length,0);
+    return h("button",{class:"scard",onclick:()=>openReview(m.id)},
+      h("div",{class:"row"}, h("span",{class:"map"},m.map||"Карта?"), h("span",{class:"muted small",style:"margin-left:auto"},fmtD(m.date))),
+      h("h3",{},"vs "+(m.opponentName||"Соперник")),
+      h("div",{class:"foot"}, h("span",{class:"mono"+(sc?(w>l?" win":" loss"):"")}, sc || "раунды не отмечены"), tags ? h("span",{class:"chip warn"},"ошибок: "+tags) : null));
+  }), canWriteNow() ? addCell("Новый матч", ()=>reviewForm()) : null));
+  return out;
+}
+function reviewForm(m){
+  const isNew = !m; m = m || {date:ymd(new Date()), map:state.rf.map||state.maps[0], firstSide:"T"};
+  const dl = h("datalist",{id:"rv-opp-list"}, state.opponents.map(o=>h("option",{value:o.name})));
+  const mapOpts = Object.fromEntries(state.maps.map(x=>[x,x])); if(m.map && !mapOpts[m.map]) mapOpts[m.map]=m.map;
+  const body = h("div",{class:"form"},
+    field("Соперник", inp("dm-opp", m.opponentName, "text", "Начните вводить название"), true), dl,
+    field("Карта", sel("dm-map", m.map, mapOpts)), field("Дата", inp("dm-date", m.date, "date")),
+    isNew ? field("Начинали за", sel("dm-first", m.firstSide, {T:"T (атака)", CT:"CT (защита)"})) : null,
+    field("Видео (YouTube, Twitch)", inp("dm-video", m.video, "url", "https://"), true),
+    field("Ссылка на демку", inp("dm-demo", m.demo, "url", "https://"), true));
+  body.querySelector("#dm-opp").setAttribute("list","rv-opp-list");
+  const save = h("button",{class:"btn primary",onclick:async()=>{
+    const name = val("dm-opp"); if(!name){ toast("Укажите соперника."); return; }
+    save.disabled = true;
+    let opp = state.opponents.find(o=>o.name.toLowerCase()===name.toLowerCase());
+    if(!opp){ const oid = newId("opponents"); if(!(await put("opponents",oid,{name}))){ save.disabled=false; return; } opp = {id:oid, name}; state.opponents = upsert(state.opponents, opp); }
+    const id = m.id || newId("matches");
+    const first = isNew ? val("dm-first") : m.firstSide;
+    const doc = {...m, opponentId:opp.id, opponentName:opp.name, map:val("dm-map"), date:val("dm-date"), video:val("dm-video"), demo:val("dm-demo"), firstSide:first,
+      rounds: m.rounds || newRounds(0,24,first), author: m.author || state.me || ""};
+    delete doc.id;
+    if(await put("matches",id,doc)){ state.matches = upsert(state.matches,{id,...doc}); openReview(id); } else save.disabled = false;
+  }}, isNew ? "Создать" : "Сохранить");
+  openModal(isNew ? "Новый матч" : "Матч: правка", body, [h("button",{class:"btn ghost",onclick:()=>m.id?openReview(m.id):closeModal()},"Отмена"), save]);
+}
+function tagsForm(){
+  const t = ta("tags-list", reviewTags().join("\n"), "", 10);
+  const save = h("button",{class:"btn primary",onclick:async()=>{
+    const tags = [...new Set(t.value.split("\n").map(x=>x.trim()).filter(Boolean))];
+    if(!tags.length){ toast("Нужен хотя бы один тег."); return; }
+    save.disabled = true;
+    if(await put("settings","review",{tags})){ state.reviewTags = tags; toast("Теги сохранены"); closeModal(); render(); } else save.disabled = false;
+  }},"Сохранить");
+  openModal("Теги для разбора", [h("p",{class:"muted",style:"margin:0"},"Один тег в строке. Тег с плюсом в начале («+ Взяли ранний пик») считается удачным моментом и не попадает в статистику ошибок."), field("Теги", t, true)],
+    [h("button",{class:"btn ghost",onclick:closeModal},"Отмена"), save]);
+}
+function openReview(id){
+  let cur = 0, m = null, saveT = 0, dirty = false;
+  const load = () => { const x = state.matches.find(y=>y.id===id); if(!x) return false; if(!dirty) m = JSON.parse(JSON.stringify(x)); return true; };
+  if(!load()) return;
+  const can = canWriteNow();
+  const persist = () => { dirty = true; clearTimeout(saveT); saveT = setTimeout(async()=>{ const {id:_, ...doc} = m; if(await put("matches", id, doc)){ state.matches = upsert(state.matches,{id,...doc}); } dirty = false; }, 500); };
+  const change = fn => { fn(); persist(); redraw(); };
+  const pickSeg = (opts, v, on, label) => h("div",{class:"seg",role:"group","aria-label":label}, opts.map(([k,l])=>h("button",{type:"button","aria-pressed":String(v===k),disabled:can?null:true,onclick:()=>on(v===k?"":k)},l)));
+  const build = () => {
+    const rs = m.rounds || [];
+    if(cur >= rs.length) cur = Math.max(0, rs.length-1);
+    const r = rs[cur] || {tags:[]};
+    const strip = h("div",{class:"dm-strip"}, rs.map((x,i)=>h("button",{type:"button",class:"dm-rc "+(x.side||"")+(x.res==="w"?" w":x.res==="l"?" l":"")+(i===cur?" cur":"")+(i===12||i===24||(i>24&&(i-24)%6===0)?" brk":""),
+      title:"Раунд "+(i+1)+(x.res==="w"?": выиграли":x.res==="l"?": проиграли":""), onclick:()=>{ cur=i; redraw(); }},
+      h("span",{},i+1), (x.tags||[]).length ? h("i",{class:"dm-dot"+((x.tags||[]).some(t=>!isGood(t.tag))?" bad":"")}) : null)));
+    const strats = tactics().filter(x=>x.map===m.map && (x.side||"T")===r.side);
+    const others = tactics().filter(x=>!(x.map===m.map && (x.side||"T")===r.side));
+    const stSel = h("select",{id:"dm-strat","aria-label":"Какую страту играли",disabled:can?null:true},
+      h("option",{value:""},"Страту не отмечаем"),
+      strats.length ? h("optgroup",{label:m.map+" · "+r.side}, strats.map(x=>h("option",{value:x.id},x.name))) : null,
+      others.length ? h("optgroup",{label:"Другие"}, others.map(x=>h("option",{value:x.id},(x.map||"")+" · "+(x.side||"")+" · "+x.name))) : null);
+    stSel.value = r.stratId || ""; stSel.addEventListener("change",()=>change(()=>{ r.stratId = stSel.value; const st = tactics().find(x=>x.id===r.stratId); if(st && !r.type && st.roundType) r.type = st.roundType; }));
+    const players = roster();
+    const tagRows = (r.tags||[]).map((t,j)=>{
+      const pl = h("select",{"aria-label":"Игрок",disabled:can?null:true}, h("option",{value:""},"Кто?"), [...new Set([...players, ...(t.player?[t.player]:[])])].map(n=>h("option",{value:n},n))); pl.value = t.player||"";
+      pl.addEventListener("change",()=>{ t.player = pl.value; persist(); });
+      const tc = h("input",{type:"text",class:"dm-tc",placeholder:"мм:сс",value:t.time||"","aria-label":"Таймкод",disabled:can?null:true,id:"dm-tc-"+cur+"-"+j}); tc.addEventListener("input",()=>{ t.time = tc.value.trim(); persist(); }); tc.addEventListener("change",()=>redraw());
+      const nt = h("input",{type:"text",class:"dm-nt",placeholder:"Коротко, что случилось",value:t.note||"","aria-label":"Заметка",disabled:can?null:true,id:"dm-nt-"+cur+"-"+j}); nt.addEventListener("input",()=>{ t.note = nt.value; persist(); });
+      const go = t.time && safeUrl(m.video) ? h("a",{href:ytAt(m.video,t.time),target:"_blank",rel:"noopener",class:"btn ghost sm",title:"Открыть видео на этом моменте"},"▶ "+t.time) : h("span");
+      return h("div",{class:"dm-tag"+(isGood(t.tag)?" good":"")}, h("b",{},tagLabel(t.tag)), pl, tc, go, nt,
+        can ? h("button",{type:"button",class:"icon-btn",title:"Убрать тег","aria-label":"Убрать тег",onclick:()=>change(()=>{ r.tags.splice(j,1); })},"×") : null);
+    });
+    const used = new Set((r.tags||[]).map(t=>t.tag));
+    const panel = h("section",{class:"dm-panel"},
+      h("div",{class:"dm-ph"}, h("button",{type:"button",class:"btn ghost sm",disabled:cur?null:true,onclick:()=>{ cur--; redraw(); }},"←"), h("h3",{},"Раунд "+(cur+1)), h("button",{type:"button",class:"btn ghost sm",disabled:cur<rs.length-1?null:true,onclick:()=>{ cur++; redraw(); }},"→")),
+      h("div",{class:"dm-line"},
+        pickSeg([["w","Выиграли"],["l","Проиграли"]], r.res, v=>change(()=>{ r.res=v; }), "Результат"),
+        pickSeg([["T","T"],["CT","CT"]], r.side, v=>change(()=>{ r.side=v||r.side; }), "Сторона"),
+        pickSeg(RT_ORDER.map(k=>[k,ROUND_TYPES[k]]), r.type, v=>change(()=>{ r.type=v; }), "Тип раунда")),
+      field("Какую страту играли", stSel, true),
+      h("div",{class:"field wide"}, h("span",{class:"lbl"},"Что произошло"),
+        h("div",{class:"dm-tagpick"}, reviewTags().map(t=>h("button",{type:"button",class:"zone"+(isGood(t)?" good":""),"aria-pressed":String(used.has(t)),disabled:can?null:true,onclick:()=>change(()=>{ r.tags = r.tags||[]; if(used.has(t)) r.tags = r.tags.filter(x=>x.tag!==t); else r.tags.push({tag:t, player:"", time:"", note:""}); })}, tagLabel(t)))),
+        tagRows.length ? h("div",{class:"dm-tags"}, tagRows) : null));
+    const oppN = ta("dm-oppnotes", m.oppNotes, "Что заметили у соперника: любимые выходы, где стоит AWP, как играют пистолетки", 3); if(!can) oppN.disabled = true;
+    oppN.addEventListener("input",()=>{ m.oppNotes = oppN.value; persist(); });
+    const notes = ta("dm-notes", m.notes, "Главные выводы по матчу", 3); if(!can) notes.disabled = true;
+    notes.addEventListener("input",()=>{ m.notes = notes.value; persist(); });
+    const sc = dmScore(m);
+    const body = [
+      h("div",{class:"chips",style:"margin-top:0"}, h("span",{class:"chip"},m.map||"Карта?"), m.date ? h("span",{class:"chip"},fmtD(m.date)) : null, sc ? h("span",{class:"chip "+(+sc.split(":")[0] > +sc.split(":")[1] ? "good":"bad")},sc) : null,
+        ext(m.video,"Видео ↗"), ext(m.demo,"Демка ↗"), m.opponentId ? h("button",{type:"button",class:"btn ghost sm",onclick:()=>openOpponent(m.opponentId)},"Досье соперника") : null),
+      h("div",{class:"dm-stripwrap"}, strip, can ? h("div",{class:"dm-ot"},
+        h("button",{type:"button",class:"btn ghost sm",onclick:()=>change(()=>{ m.rounds = [...rs, ...newRounds(rs.length, rs.length+6, m.firstSide||"T")]; })},"+ Овертайм"),
+        rs.length>24 && rs.slice(-6).every(x=>!x.res && !(x.tags||[]).length) ? h("button",{type:"button",class:"btn ghost sm",onclick:()=>change(()=>{ m.rounds = rs.slice(0,-6); })},"Убрать овертайм") : null) : null),
+      panel,
+      h("section",{class:"sec"}, h("h3",{},"О сопернике (попадёт в его досье)"), oppN),
+      h("section",{class:"sec"}, h("h3",{},"Выводы"), notes)];
+    const actions = can ? [confirmBtn("Удалить матч",async()=>{ clearTimeout(saveT); if(await del("matches",id)){ state.matches = state.matches.filter(x=>x.id!==id); closeModal(); render(); toast("Матч удалён"); } }), h("button",{class:"btn",onclick:()=>reviewForm(state.matches.find(x=>x.id===id))},"Соперник, карта, ссылки")] : [];
+    return ["vs "+(m.opponentName||"Соперник"), body, actions];
+  };
+  const redraw = () => keepFocus(()=>{ const n = build(); const mod = document.querySelector(".modal"); if(!mod) return; mod.querySelector(".m-head h2").textContent = n[0]; mod.querySelector(".m-body").replaceChildren(...n[1].filter(Boolean)); const f = mod.querySelector(".m-foot"); if(f) f.replaceChildren(...n[2]); });
+  const r0 = build();
+  openModal(r0[0], r0[1].filter(Boolean), r0[2], "detail", ()=>{ if(!load()){ closeModal(); return; } if(!dirty) redraw(); });
+  document.querySelector(".modal")?.classList.add("wide");
+}
+
 /* ---------- comments ---------- */
 const commentsFor = id => state.comments.filter(c=>c.stratId===id).sort((a,b)=>(a.at||"").localeCompare(b.at||""));
 const cmDraft = {};
@@ -1750,6 +1986,9 @@ function openOpponent(id){
       h("div",{class:"chips",style:"margin-top:0"}, o.region?h("span",{class:"chip"},o.region):null, h("span",{class:"chip"}, mt.length?`Встреч: ${mt.length}, ${rec.w}–${rec.l}`:"Ещё не встречались")),
       sec("Любимые карты",o.favMaps), sec("Привычки на T",o.tNotes), sec("Привычки на CT",o.ctNotes), sec("Ключевые игроки",o.players), sec("Заметки",o.notes),
       ![o.favMaps,o.tNotes,o.ctNotes,o.players,o.notes].some(Boolean) ? h("p",{class:"muted",style:"margin:0"},"Досье пустое. Нажмите «Редактировать», чтобы записать, что знаете о команде.") : null,
+      (()=>{ const rm = state.matches.filter(x=>x.opponentId===id && (x.oppNotes||"").trim()).sort((a,b)=>(b.date||"").localeCompare(a.date||""));
+        return rm.length ? h("section",{class:"sec"}, h("h3",{},"Из разборов матчей"), h("div",{class:"dm-notes"}, rm.map(x=>h("div",{class:"dm-note"},
+          h("button",{class:"opp",onclick:()=>openReview(x.id)}, [fmtD(x.date), x.map, dmScore(x)].filter(Boolean).join(" · ")), prose(x.oppNotes))))) : null; })(),
       h("section",{class:"sec"}, h("h3",{},"История встреч"), mt.length ? h("div",{class:"matches"}, mt.map(({t,m})=>h("div",{class:"mrow"},
         h("div",{style:"min-width:0"}, h("button",{class:"opp",onclick:()=>openTournament(t.id)},t.name), h("div",{class:"meta"},[fmtDT(m.date)||fmtD(t.start), m.maps].filter(Boolean).join(" · "))),
         h("div",{class:"mono"},m.score||""),
@@ -1957,7 +2196,8 @@ function start(){
   }, e=>{ state.loaded[key]=true; render(); if(e.code==="invalid_argument"){ sb.auth.signOut(); started=false; showLogin("Сессия устарела, войдите заново."); } });
   sub("tournaments","t"); sub("strats","s"); sub("opponents","o");
   const sub2 = (col,key) => db.collection(col).onSnapshot(snap=>{ state[col] = snap.docs.map(d=>({id:d.id,...d.data()})); state.loaded[key]=true; render(); refreshDetail(); }, ()=>{ state.loaded[key]=true; });
-  sub2("events","e"); sub2("comments","c");
+  sub2("events","e"); sub2("comments","c"); sub2("matches","m");
+  db.doc("settings/review").onSnapshot(s=>{ const dt = s.exists ? s.data() : {}; state.reviewTags = Array.isArray(dt.tags) ? dt.tags : []; if(state.tab==="review" && !state.modal) render(); }, ()=>{});
   db.doc("settings/team").onSnapshot(s=>{
     const dt = s.exists ? s.data() : {}; const first = !state.loaded.team; state.loaded.team = true;
     state.players = Array.isArray(dt.players) ? dt.players : []; state.captainReady = !!dt.captainReady; state.captainName = dt.captainName || "";

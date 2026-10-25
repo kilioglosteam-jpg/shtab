@@ -351,6 +351,8 @@ details.past>summary{cursor:pointer;color:var(--muted);font-weight:600;margin-bo
 .dm-rc.brk{grid-column-start:1}
 .dm-dot{position:absolute;top:4px;right:4px;width:7px;height:7px;border-radius:50%;background:var(--good)}
 .dm-dot.bad{background:var(--warn)}
+.draft-bar{grid-column:1/-1;display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:10px 12px;border:1px solid var(--warn);border-left-width:4px;border-radius:6px;background:color-mix(in srgb,var(--warn) 10%,var(--surface));font-size:14px;margin-bottom:12px}
+.draft-bar span{flex:1;min-width:200px;font-weight:600}
 .dm-addtag{border-style:dashed!important;color:var(--accent)!important}
 .dm-newwrap{display:inline-flex;gap:6px;align-items:center;flex-wrap:wrap}
 .dm-newtag{padding:5px 8px;border:1px solid var(--accent);border-radius:6px;background:var(--surface);min-width:260px;font:inherit;font-size:13px}
@@ -760,19 +762,55 @@ function confirmBtn(label, onConfirm){
 }
 
 /* ---------- modal ---------- */
-function closeModal(){ document.querySelectorAll(".overlay,.rv").forEach(x=>x.remove());  document.body.classList.remove("locked"); state.modal=null; }
+function closeModal(){ if(state.modal && state.modal.flush) state.modal.flush(); document.querySelectorAll(".overlay,.rv").forEach(x=>x.remove());  document.body.classList.remove("locked"); state.modal=null; }
 function openModal(title, body, actions, kind="form", rerender){
   closeModal();
-  const ov = h("div",{class:"overlay",onclick:e=>{ if(e.target===ov) closeModal(); }},
+  const ov = h("div",{class:"overlay",onclick:e=>{ if(e.target===ov && !(state.modal && state.modal.guarded)) closeModal(); }},
     h("div",{class:"modal",role:"dialog","aria-modal":"true","aria-label":title},
-      h("header",{class:"m-head"}, h("h2",{},title), h("button",{type:"button",class:"icon-btn",onclick:closeModal,"aria-label":"Закрыть"},"×")),
+      h("header",{class:"m-head"}, h("h2",{},title), h("button",{type:"button",class:"icon-btn",onclick:tryClose,"aria-label":"Закрыть"},"×")),
       h("div",{class:"m-body"}, body),
       actions && actions.length ? h("footer",{class:"m-foot"}, actions) : null));
   document.body.append(ov); document.body.classList.add("locked");
   state.modal = {kind, rerender};
   const first = ov.querySelector("input,select,textarea"); if(first && kind==="form") first.focus();
 }
-document.addEventListener("keydown", e=>{ if(e.key==="Escape" && state.modal) closeModal(); });
+document.addEventListener("keydown", e=>{ if(e.key==="Escape" && state.modal) tryClose(); });
+const LEAVE_Q = "Закрыть без сохранения? Черновик останется на этом устройстве, его можно будет восстановить.";
+function tryClose(){ if(state.modal && state.modal.dirty && state.modal.dirty() && !confirm(LEAVE_Q)) return; closeModal(); }
+/* Drafts: a guarded form keeps unsaved input in localStorage and offers it back next time the same form opens. */
+const DRAFT_KEY = k => "shtab.draft."+k;
+function readDraft(k){ try{ const d = JSON.parse(localStorage.getItem(DRAFT_KEY(k))||"null"); return d && d.doc ? d : null; }catch(e){ return null; } }
+function dropDraft(k){ try{ localStorage.removeItem(DRAFT_KEY(k)); }catch(e){} }
+function guardForm(key, opts){
+  const mod = document.querySelector(".modal"); if(!mod || !state.modal) return {done(){}};
+  const body = mod.querySelector(".m-body");
+  const fieldsOf = () => [...body.querySelectorAll("input[id],select[id],textarea[id]")].filter(x=>x.type!=="file" && x.type!=="password");
+  const collect = opts.collect || (() => Object.fromEntries(fieldsOf().map(x=>[x.id, x.type==="checkbox" ? x.checked : x.value])));
+  const restore = opts.restore || (doc => { for(const x of fieldsOf()) if(x.id in doc){ if(x.type==="checkbox") x.checked = !!doc[x.id]; else x.value = doc[x.id]; } });
+  const snap = () => { try{ return JSON.stringify(collect()); }catch(e){ return ""; } };
+  const initial = snap();
+  let done = false, forced = !!opts.restored, t = 0;
+  const dirty = () => !done && (forced || snap() !== initial);
+  const flush = () => { clearTimeout(t); if(done || !body.isConnected) return; try{ if(dirty()) localStorage.setItem(DRAFT_KEY(key), JSON.stringify({at:Date.now(), doc:collect()})); }catch(e){} };
+  const later = () => { clearTimeout(t); t = setTimeout(flush, 800); };
+  ["input","change","click"].forEach(ev=>body.addEventListener(ev, later));
+  Object.assign(state.modal, {guarded:true, dirty, flush});
+  const cancel = [...mod.querySelectorAll(".m-foot .btn.ghost")].find(b=>b.textContent.trim()==="Отмена");
+  if(cancel) mod.querySelector(".m-foot").addEventListener("click", e=>{ if(cancel.contains(e.target) && dirty() && !confirm(LEAVE_Q)){ e.stopPropagation(); e.preventDefault(); } }, true);
+  const d = !opts.restored && readDraft(key);
+  if(d && JSON.stringify(d.doc) !== initial){
+    const tm = new Date(d.at), today = ymd(tm) === ymd(new Date());
+    const when = (today ? "" : fmtD(ymd(tm))+" ") + String(tm.getHours()).padStart(2,"0")+":"+String(tm.getMinutes()).padStart(2,"0");
+    const bar = h("div",{class:"draft-bar",role:"status"},
+      h("span",{},"Есть несохранённый черновик от "+when),
+      h("button",{type:"button",class:"btn primary sm",onclick:()=>{ bar.remove(); if(opts.reopen) opts.reopen(d.doc); else { restore(d.doc); forced = true; } }},"Восстановить"),
+      h("button",{type:"button",class:"btn ghost sm",onclick:()=>{ dropDraft(key); bar.remove(); }},"Удалить"));
+    body.prepend(bar);
+  } else if(d) dropDraft(key);
+  return {done(){ done = true; clearTimeout(t); dropDraft(key); }};
+}
+document.addEventListener("visibilitychange", ()=>{ if(document.visibilityState==="hidden" && state.modal && state.modal.flush) state.modal.flush(); });
+window.addEventListener("pagehide", ()=>{ if(state.modal && state.modal.flush) state.modal.flush(); });
 function refreshDetail(){ if(state.modal && (state.modal.kind==="detail"||state.modal.kind==="round") && state.modal.rerender) state.modal.rerender(); }
 
 /* ---------- tabs ---------- */
@@ -966,10 +1004,11 @@ function eventForm(e, type, date, preset){
     const id = e.id || newId("events");
     const doc = {type:e.type, date:d, time:val("ev-time"), until:val("ev-until"), title:val("ev-title"), notes:val("ev-notes"), players, tasks:e.tasks||[], author:e.author||state.me||""};
     save.disabled = true;
-    if(await put("events",id,doc)){ state.events = upsert(state.events,{id,...doc}); toast(isNew?"Добавлено в календарь":"Сохранено"); closeModal(); render(); }
+    if(await put("events",id,doc)){ G.done(); state.events = upsert(state.events,{id,...doc}); toast(isNew?"Добавлено в календарь":"Сохранено"); closeModal(); render(); }
     else save.disabled = false;
   }}, isNew?"Добавить":"Сохранить");
   openModal((isNew?"Новая ":"")+(isNew?(solo?"личная тренировка":"командная тренировка"):EV_TYPES[e.type]), body, [h("button",{class:"btn ghost",onclick:()=> e.id?openEvent(e.id):closeModal()},"Отмена"), save]);
+  const G = guardForm("event:"+(e.id||"new-"+e.type), {});
 }
 function openEvent(id){
   const build = () => {
@@ -1019,10 +1058,11 @@ function tournamentForm(t, preset){
       regDeadline:val("t-regd"), regUrl:val("t-regurl"), formStage:val("t-stage"), formNote:val("t-formnote"), bracketUrl:val("t-burl"), bracketText:document.getElementById("t-btext").value,
       place:val("t-place"), result:val("t-result"), matches:t.matches||[]};
     save.disabled=true;
-    if(await put("tournaments",id,doc)){ toast(isNew?"Турнир добавлен":"Сохранено"); state.tournaments = upsert(state.tournaments,{id,...doc}); openTournament(id); }
+    if(await put("tournaments",id,doc)){ G.done(); toast(isNew?"Турнир добавлен":"Сохранено"); state.tournaments = upsert(state.tournaments,{id,...doc}); openTournament(id); }
     else save.disabled=false;
   }}, isNew?"Добавить":"Сохранить");
   openModal(isNew?"Новый турнир":"Турнир: правка", body, [h("button",{class:"btn ghost",onclick:()=> t.id?openTournament(t.id):closeModal()},"Отмена"), save]);
+  const G = guardForm("tournament:"+(t.id||"new"), {});
 }
 function upsert(arr,doc){ const i=arr.findIndex(x=>x.id===doc.id); const a=arr.slice(); if(i>=0) a[i]={...a[i],...doc}; else a.push(doc); return a; }
 
@@ -1395,7 +1435,7 @@ function cloneStrat(s){
   (rest.branches||[]).forEach(b=>{ const old = b.id; b.id = rid(); (rest.lineups||[]).forEach(l=>{ if(l.phase==="b:"+old) l.phase = "b:"+b.id; }); });
   stratForm(rest);
 }
-function stratForm(s, side){
+function stratForm(s, side, restored){
   const isNew = !s || !s.id;
   s = s || {side:side||"T",roundType:"full",status:"wip",map:state.sf.map||state.maps[0],roles:{},lineups:[],default:{roles:{}},branches:[]};
   const d = s.default||{};
@@ -1441,19 +1481,22 @@ function stratForm(s, side){
   redrawSum();
   ["change","click","input"].forEach(ev=>body.addEventListener(ev, e=>{ if(!nSum.contains(e.target)) redrawSum(); }));
   const capProposal = !isNew && s.proposed===true && isCap();
+  const collect = () => {
+    const lineups = [...lus.querySelectorAll(".lu-row")].map(r=>r.read()).filter(x=>x.title||x.purpose||x.url||x.imageId);
+    const branches = [...brList.querySelectorAll(".br-ed")].map(x=>x.read()).filter(b=>b.taken.length||b.info||b.finish.name||b.finish.utility||b.finish.notes||Object.values(b.finish.roles).some(Boolean));
+    return {name:val("s-name"), map:val("s-map"), side:val("s-side"), roundType:val("s-round"), status:val("s-status"), call:val("s-call"),
+      roles:{}, default:{until:val("d-until"), roles:readRoles("d-r-"), utility:val("d-util"), notes:val("d-notes")}, branches, lineups,
+      tags:val("s-tags").split(",").map(x=>x.trim()).filter(Boolean), nades:nEd.read()};
+  };
   const doSave = async()=>{
     const name=val("s-name"); if(!name){ toast("Укажите название страты."); document.getElementById("s-name").focus(); return; }
     const id = s.id || newId("strats");
-    const lineups = [...lus.querySelectorAll(".lu-row")].map(r=>r.read()).filter(x=>x.title||x.purpose||x.url||x.imageId);
-    const branches = [...brList.querySelectorAll(".br-ed")].map(x=>x.read()).filter(b=>b.taken.length||b.info||b.finish.name||b.finish.utility||b.finish.notes||Object.values(b.finish.roles).some(Boolean));
     const proposed = isNew ? !isCap() : (s.proposed===true && !approve);
-    const doc = {name, map:val("s-map"), side:val("s-side"), roundType:val("s-round"), status:val("s-status"), call:val("s-call"),
-      roles:{}, default:{until:val("d-until"), roles:readRoles("d-r-"), utility:val("d-util"), notes:val("d-notes")}, branches, lineups,
-      tags:val("s-tags").split(",").map(x=>x.trim()).filter(Boolean), nades:nEd.read(),
-      proposed, author: s.author || (isNew ? state.me : "") || "", createdAt: s.createdAt || new Date().toISOString()};
+    const doc = {...collect(), proposed, author: s.author || (isNew ? state.me : "") || "", createdAt: s.createdAt || new Date().toISOString()};
     if(!proposed && s.proposed) doc.confirmedAt = new Date().toISOString();
     [save, ok].forEach(b=>b && (b.disabled=true));
     if(await put("strats",id,doc)){
+      G.done();
       toast(isNew ? (proposed ? "Предложение добавлено, капитан его посмотрит" : "Страта добавлена") : (!proposed && s.proposed ? "Подтверждено, теперь это тактика" : "Сохранено"));
       state.strats=upsert(state.strats,{id,...doc}); openStrat(id);
     }
@@ -1464,6 +1507,7 @@ function stratForm(s, side){
   const ok = capProposal ? h("button",{class:"btn primary",onclick:()=>{ approve=true; doSave(); }},"Сохранить и подтвердить") : null;
   openModal(isNew ? (isCap()?"Новая страта":"Новое предложение") : (s.proposed?"Предложение: правка":"Страта: правка"), body, [h("button",{class:"btn ghost",onclick:()=>s.id?openStrat(s.id):closeModal()},"Отмена"), save, ok].filter(Boolean));
   document.querySelector(".modal")?.classList.add("wide");
+  const G = guardForm("strat:"+(s.id||"new"), {collect, restored, reopen: doc => { state.modal.flush = null; stratForm({...s, ...doc}, side, true); }});
 }
 const rolesMini = r => { const xs = ROLES.filter(([k])=>r && r[k]); return xs.length ? h("div",{class:"rmini"}, xs.map(([k,l])=>h("div",{},h("b",{},l),h("span",{},r[k])))) : null; };
 function treeView(s){
@@ -2060,9 +2104,10 @@ function opponentForm(o){
     const id=o.id||newId("opponents");
     const doc={name, region:val("o-region"), favMaps:val("o-maps"), tNotes:val("o-t"), ctNotes:val("o-ct"), players:val("o-pl"), notes:val("o-notes")};
     save.disabled=true;
-    if(await put("opponents",id,doc)){ toast(isNew?"Команда добавлена":"Сохранено"); state.opponents=upsert(state.opponents,{id,...doc}); openOpponent(id); } else save.disabled=false;
+    if(await put("opponents",id,doc)){ G.done(); toast(isNew?"Команда добавлена":"Сохранено"); state.opponents=upsert(state.opponents,{id,...doc}); openOpponent(id); } else save.disabled=false;
   }}, isNew?"Добавить":"Сохранить");
   openModal(isNew?"Новая команда":"Досье: правка", body, [h("button",{class:"btn ghost",onclick:()=>o.id?openOpponent(o.id):closeModal()},"Отмена"), save]);
+  const G = guardForm("opponent:"+(o.id||"new"), {});
 }
 function openOpponent(id){
   const build=()=>{

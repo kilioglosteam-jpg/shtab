@@ -124,7 +124,7 @@ main{max-width:1180px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-le
 .stage{font-family:var(--f-mono);font-size:12px;text-transform:uppercase;letter-spacing:.1em;font-weight:600;padding:4px 0 2px;border-bottom:2px solid currentColor}
 .stage.wide{grid-column:1/-1;margin-top:6px}
 .s1{color:var(--accent)} .s2{color:var(--ct)} .s3{color:var(--good)}
-.rgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:8px}
+.rgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px}
 .br-list{display:flex;flex-direction:column;gap:12px;counter-reset:br;margin-bottom:8px}
 .br-ed{counter-increment:br;border:1px solid var(--line);border-radius:8px;padding:12px;background:var(--bg);display:flex;flex-direction:column;gap:10px}
 .br-head{display:flex;justify-content:space-between;align-items:center}
@@ -183,6 +183,8 @@ main{max-width:1180px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-le
 .role-card{border:1px solid var(--line);border-radius:8px;padding:14px 16px;background:var(--bg);display:flex;flex-direction:column;gap:6px;min-width:0}
 .role-card b{font-family:var(--f-mono);font-size:13px;color:var(--accent);text-transform:uppercase;letter-spacing:.06em}
 .role-card .prose{font-size:15px}
+.role-card.alt b{color:var(--muted);text-transform:none}
+.role-card.alt .prose{color:var(--muted)}
 .rv-block h3{font-family:var(--f-mono);font-size:12px;text-transform:uppercase;letter-spacing:.12em;color:var(--muted);margin:0 0 8px;font-weight:600}
 .rv-next{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;border-top:1px solid var(--line);padding-top:16px}
 .br-pick{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:12px}
@@ -678,6 +680,8 @@ const TSTATUS = {planned:["Планируем","s-plan"],registered:["Заяви
 const FORM_STAGES = {rebuild:"Обкатка состава",building:"Набираем форму",peak:"Пик формы"};
 const ROUND_TYPES = {pistol:"Пистолетка",eco:"Эко",force:"Форс",antiforce:"Антифорс",full:"Фулл-бай"};
 const ROLES = [["igl","IGL"],["awp","AWP"],["entry","Энтри"],["lurker","Люркер"],["support","Саппорт"]];
+/* Text slots per role: the AWP player also gets a "noAWP" plan for rounds without the rifle. Grenades stay on ROLES. */
+const TEXT_ROLES = [["igl","IGL"],["awp","AWP"],["noawp","noAWP"],["entry","Энтри"],["lurker","Люркер"],["support","Саппорт"]];
 const SSTATUS = {ready:"Отработана",wip:"В работе"};
 const OUTCOME = {"":"Ещё не играли",win:"Победа",loss:"Поражение"};
 
@@ -1400,8 +1404,8 @@ function lineupRow(l, phases){
   row.append(prev, h("div",{class:"lu-fields"}, h("div",{class:"lu-line"},type,who,phase,t), why, u), acts);
   return row;
 }
-const rolesInputs = (prefix, roles, area) => h("div",{class:"rgrid"}, ROLES.map(([k,l])=>field(l, area ? ta(prefix+k,(roles||{})[k],"",2) : inp(prefix+k,(roles||{})[k],"text",""))));
-const readRoles = prefix => Object.fromEntries(ROLES.map(([k])=>[k,val(prefix+k)]));
+const rolesInputs = (prefix, roles, area) => h("div",{class:"rgrid"}, TEXT_ROLES.map(([k,l])=>field(k==="noawp" ? "noAWP (если без AWP)" : l, area ? ta(prefix+k,(roles||{})[k],"",2) : inp(prefix+k,(roles||{})[k],"text",""))));
+const readRoles = prefix => Object.fromEntries(TEXT_ROLES.map(([k])=>[k,val(prefix+k)]));
 function branchEditor(b, getMap){
   b = b || {id:rid(), taken:[], info:"", finish:{roles:{}}};
   const f = b.finish||{}, p = "b-"+b.id+"-";
@@ -1509,7 +1513,7 @@ function stratForm(s, side, restored){
   document.querySelector(".modal")?.classList.add("wide");
   const G = guardForm("strat:"+(s.id||"new"), {collect, restored, reopen: doc => { state.modal.flush = null; stratForm({...s, ...doc}, side, true); }});
 }
-const rolesMini = r => { const xs = ROLES.filter(([k])=>r && r[k]); return xs.length ? h("div",{class:"rmini"}, xs.map(([k,l])=>h("div",{},h("b",{},l),h("span",{},r[k])))) : null; };
+const rolesMini = r => { const xs = TEXT_ROLES.filter(([k])=>r && r[k]); return xs.length ? h("div",{class:"rmini"}, xs.map(([k,l])=>h("div",{},h("b",{},l),h("span",{},r[k])))) : null; };
 function treeView(s){
   const brs = s.branches||[], zs = state.sf.zones, d = s.default||{};
   const n = Math.max(brs.length,1);
@@ -1543,7 +1547,7 @@ function openStrat(id, fromEl){
   if(s0){ openRound(id, fromEl); return; }
   const build = () => {
     const s = state.strats.find(x=>x.id===id); if(!s){ closeModal(); return null; }
-    const roles = ROLES.filter(([k])=>(s.roles||{})[k]);
+    const roles = TEXT_ROLES.filter(([k])=>(s.roles||{})[k]);
     const body = [
       h("div",{class:"chips",style:"margin-top:0"}, h("span",{class:"side "+(s.side||"T")},s.side||"T"), h("span",{class:"chip"},s.map||"Карта?"), h("span",{class:"chip"},ROUND_TYPES[s.roundType]||""), h("span",{class:"chip "+(s.status==="ready"?"good":"warn")},SSTATUS[s.status]||SSTATUS.wip)),
       s.call ? h("section",{class:"sec"}, h("h3",{},"Когда вызываем"), h("p",{class:"prose"},s.call)) : null,
@@ -1970,7 +1974,7 @@ function openRound(id, fromEl, startStage){
 
     // 1 · default
     k=0;
-    const dr = defRoles(s), roleCards = ROLES.map(([r,l])=>roleCard(s,"default",r,l,dr[r],it)).filter(Boolean);
+    const dr = defRoles(s), roleCards = TEXT_ROLES.map(([r,l])=>roleCard(s,"default",r,l,dr[r],it)).filter(Boolean);
     pages[0].replaceChildren(h("div",{class:"rv-in"},
       it(h("div",{class:"rv-kick s1"},"Часть 1 из 3 · Дефолт"+(d.until?" · держим до "+d.until:""))),
       s.call ? it(h("p",{class:"rv-lead"},s.call)) : null,
@@ -1996,7 +2000,7 @@ function openRound(id, fromEl, startStage){
     // 3 · finish
     k=0;
     const b = brs[branch], f = (b&&b.finish)||{};
-    const froles = b ? ROLES.map(([r,l])=>roleCard(s,"b:"+b.id,r,l,f.roles&&f.roles[r],it)).filter(Boolean) : [];
+    const froles = b ? TEXT_ROLES.map(([r,l])=>roleCard(s,"b:"+b.id,r,l,f.roles&&f.roles[r],it)).filter(Boolean) : [];
     pages[2].replaceChildren(h("div",{class:"rv-in"},
       it(h("div",{class:"rv-kick s3"},"Часть 3 из 3 · Доигровка")),
       brs.length>1 ? it(h("div",{class:"seg br-switch",role:"group","aria-label":"Вариант"}, brs.map((x,i)=>h("button",{"aria-pressed":String(i===branch),onclick:()=>{branch=i; build();}},(x.finish&&x.finish.name)||("Вариант "+(i+1)))))) : null,
@@ -2135,7 +2139,7 @@ function openOpponent(id){
 }
 
 function roleCard(s, part, r, l, text, it){
-  return text ? it(h("div",{class:"role-card"}, h("b",{},l), prose(text))) : null;
+  return text ? it(h("div",{class:"role-card"+(r==="noawp"?" alt":"")}, h("b",{},l), prose(text))) : null;
 }
 
 const COPY = () => { const ns="http://www.w3.org/2000/svg"; const svg=document.createElementNS(ns,"svg"); svg.setAttribute("viewBox","0 0 24 24"); svg.setAttribute("width","15"); svg.setAttribute("height","15"); svg.setAttribute("aria-hidden","true");
